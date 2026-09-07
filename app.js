@@ -21,7 +21,7 @@
   const startY=Math.min(vw<=380?220:230,Math.max(80,vh*.28));
   const startHeight=startWidth*1250/2048;
   const logoHeight=72*1250/2048;
-  const dockDistance=startY-16+(startHeight-logoHeight)/2;
+  const dockDistance=startY+startHeight-16-logoHeight;
   const scroll=ease(photos.scrollTop/dockDistance);
   const width=startWidth+(72-startWidth)*scroll;
   const centeredX=(vw-startWidth)/2;
@@ -32,9 +32,9 @@
   track.style.setProperty('--view-width',vw+'px');
   track.style.setProperty('--travel',travel+'px');
   track.style.transform='translateX('+(-travel*(1-ease(p)))+'px)';
-  // Compensate for shrinking so the visual center follows the content exactly.
+  // Keep the bottom edge aligned with content until the logo docks in the header.
   const height=width*1250/2048;
-  const x=(vw-width)/2,y=Math.max(16,startY-photos.scrollTop+(startHeight-height)/2);
+  const x=(vw-width)/2,y=Math.max(16,startY-photos.scrollTop+startHeight-height);
   camera.style.left='0px';camera.style.top='0px';
   camera.style.width=startWidth+'px';camera.style.height=(startWidth*1250/2048)+'px';
   camera.style.transform='translate('+x+'px,'+y+'px) scale('+(width/startWidth)+')';
