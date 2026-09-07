@@ -57,7 +57,7 @@
  function finish(){
   home.inert=Boolean(target);photos.inert=!target;
   status.textContent=target?'Photography. Scroll down to turn the camera into the page logo.':'Camera entrance';
-  camera.setAttribute('aria-label',target?'Photography — back to top':'Open Photography');
+  camera.setAttribute('aria-label',target?'Return to main page':'Open Photography');
   (target?back:camera).focus({preventScroll:true});
  }
  function go(next){
@@ -75,12 +75,30 @@
    if(t<1)frame=requestAnimationFrame(tick);else finish();
   }frame=requestAnimationFrame(tick);
  }
+ let scrollingBack=false;
+ function returnHome(){
+  if(!ready||scrollingBack)return;
+  if(reduced.matches||photos.scrollTop<=0){go(0);return;}
+  scrollingBack=true;
+  cancelAnimationFrame(frame);
+  const from=photos.scrollTop,start=performance.now();
+  const duration=Math.min(1200,Math.max(500,from*.65));
+  status.textContent='Scrolling to top, then returning to the main page';
+  photos.inert=true;
+  function tick(now){
+   const t=clamp((now-start)/duration);
+   photos.scrollTop=from*(1-ease(t));placeCamera(progress);
+   if(t<1)frame=requestAnimationFrame(tick);
+   else {photos.scrollTop=0;scrollingBack=false;go(0);}
+  }
+  frame=requestAnimationFrame(tick);
+ }
  camera.addEventListener('click',()=>{
-  if(progress===1&&target===1)photos.scrollTo({top:0,behavior:reduced.matches?'instant':'smooth'});
-  else go(1);
+  if(scrollingBack)return;
+  if(target===1)returnHome();else go(1);
  });
- entry.addEventListener('click',()=>go(1));back.addEventListener('click',()=>go(0));
- root.addEventListener('keydown',e=>{if(e.key==='Escape')go(0);});
+ entry.addEventListener('click',()=>go(1));back.addEventListener('click',returnHome);
+ root.addEventListener('keydown',e=>{if(e.key==='Escape')returnHome();});
  photos.addEventListener('scroll',()=>{if(ready)placeCamera(progress);},{passive:true});
  const observer=new ResizeObserver(()=>{if(ready)placeCamera(progress);});observer.observe(viewport);
  Promise.all([load(upperSrc),load(lowerSrc)]).then(images=>{[upper,lower]=images;ready=true;draw(0);camera.disabled=false;entry.disabled=false;status.textContent='Camera entrance';}).catch(()=>{
