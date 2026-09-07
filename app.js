@@ -4,6 +4,7 @@
  const track=root.querySelector('.track'),camera=root.querySelector('.camera'),entry=root.querySelector('.entry'),back=root.querySelector('.back'),home=root.querySelector('.home'),photos=root.querySelector('.photos'),status=root.querySelector('.status');
  const viewport=root.querySelector('.viewport'),brand=root.querySelector('.page-brand');
  const homeLogo=root.querySelector('.home-logo');
+ const work=root.querySelector('.work'),workLogo=root.querySelector('.work-logo'),workEntry=root.querySelector('.work-entry'),workBack=root.querySelector('.work-back');
  track.appendChild(camera);
  const ctx=root.querySelector('.cover').getContext('2d');
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -29,12 +30,26 @@
   const travel=centeredX+startWidth*.6;
   // The camera is attached to the same world as the gradient and page content.
   // Only the world translates during entry. Local height and scale stay fixed.
-  track.style.width=(vw+travel)+'px';
+  track.style.width=(vw+2*travel)+'px';
   track.style.setProperty('--view-width',vw+'px');
   track.style.setProperty('--travel',travel+'px');
-  track.style.transform='translateX('+(-travel*(1-ease(p)))+'px)';
-  homeLogo.style.left=(vw-36)+'px';
-  homeLogo.style.top=(startY+startHeight/2-36)+'px';
+  const workProgress=clamp(-p);
+  const pan=p>=0?ease(p):-ease(-p);
+  track.style.transform='translateX('+(-travel*(1-pan))+'px)';
+  const centerY=startY+startHeight/2,workCenter=vw/2+2*travel;
+  // First the edges meet, then the two marks separate vertically.
+  const meet=ease(workProgress/.55),scatter=ease((workProgress-.55)/.45);
+  const contactX=workCenter-162;
+  const homeX=(vw-36)+(contactX-(vw-36))*meet+126*scatter;
+  homeLogo.style.left=homeX+'px';
+  homeLogo.style.top=(centerY-36+(vh-96-(centerY-36))*scatter)+'px';
+  const workWidth=180-108*scatter,workHeight=110-66*scatter;
+  workLogo.style.left=(workCenter-workWidth/2)+'px';
+  workLogo.style.top=(centerY-55+(16-(centerY-55))*scatter)+'px';
+  workLogo.style.width=workWidth+'px';workLogo.style.height=workHeight+'px';
+  workLogo.style.visibility=p>0?'hidden':'visible';
+  entry.style.left='24px';entry.style.top=(centerY+startHeight/2+16)+'px';
+  workEntry.style.top=(centerY+startHeight/2+16)+'px';
   // Keep the bottom edge aligned with content until the logo docks in the header.
   const height=width*1250/2048;
   const x=(vw-width)/2,y=Math.max(16,startY-photos.scrollTop+startHeight-height);
@@ -42,10 +57,13 @@
   camera.style.width=startWidth+'px';camera.style.height=(startWidth*1250/2048)+'px';
   camera.style.transform='translate('+x+'px,'+y+'px) scale('+(width/startWidth)+')';
   root.querySelector('.gallery').style.paddingTop=(startY+startWidth*1250/2048+32)+'px';
-  home.style.opacity=String(1-ease(p/.65));
+  home.style.opacity=String(1-ease(Math.abs(p)/.65));
   home.style.pointerEvents=p===0?'auto':'none';
   photos.style.pointerEvents=p===1?'auto':'none';
   photos.style.overflowY=p===1?'auto':'hidden';
+  work.style.opacity=String(ease((workProgress-.65)/.35));
+  work.style.pointerEvents=p===-1?'auto':'none';
+  work.style.overflowY=p===-1?'auto':'hidden';
   root.querySelector('.photos header').style.opacity=String(ease((p-.35)/.65));
   root.querySelector('.gallery').style.opacity=String(ease(p));
   brand.style.opacity='0';
@@ -58,19 +76,21 @@
   if(lens<1 && upper && lower){panel(upper,-1,lens);panel(lower,1,lens);}ctx.restore();
  }
  function finish(){
-  home.inert=Boolean(target);photos.inert=!target;
-  status.textContent=target?'Camera Canvas. Scroll to explore Photography.':'Home Canvas';
-  camera.setAttribute('aria-label',target?'Return to Home Canvas':'Open Camera Canvas');
-  (target?back:camera).focus({preventScroll:true});
+  home.inert=target!==0;photos.inert=target!==1;work.inert=target!==-1;
+  status.textContent=target===1?'Camera Canvas. Scroll to explore Photography.':target===-1?'Work Canvas':'Home Canvas';
+  camera.setAttribute('aria-label',target===1?'Return to Home Canvas':'Open Camera Canvas');
+  workLogo.setAttribute('aria-label',target===-1?'Return to Home Canvas':'Open Work Canvas');
+  (target===1?back:target===-1?workBack:homeLogo).focus({preventScroll:true});
  }
  function go(next){
   if(!ready)return;
-  target=next;cancelAnimationFrame(frame);home.inert=false;photos.inert=false;
+  target=next;cancelAnimationFrame(frame);home.inert=true;photos.inert=true;work.inert=true;
   photos.style.overflowY='hidden';
+  work.style.overflowY='hidden';
   const from=progress,start=performance.now(),duration=1100*Math.abs(target-from);
   returnScroll=photos.scrollTop;
-  if(reduced.matches){progress=target;if(!target)photos.scrollTop=0;draw(progress);finish();return;}
-  status.textContent=target?'Opening Photography':'Returning';
+  if(reduced.matches){progress=target;if(!target){photos.scrollTop=0;work.scrollTop=0;}draw(progress);finish();return;}
+  status.textContent=target===1?'Opening Camera Canvas':target===-1?'Opening Work Canvas':'Returning to Home Canvas';
   function tick(now){
    const t=clamp((now-start)/Math.max(1,duration));
    if(!target)photos.scrollTop=returnScroll*(1-ease(t));
@@ -81,18 +101,19 @@
  let scrollingBack=false;
  function returnHome(){
   if(!ready||scrollingBack)return;
-  if(reduced.matches||photos.scrollTop<=0){go(0);return;}
+  const active=target===-1?work:photos;
+  if(reduced.matches||active.scrollTop<=0){go(0);return;}
   scrollingBack=true;
   cancelAnimationFrame(frame);
-  const from=photos.scrollTop,start=performance.now();
+  const from=active.scrollTop,start=performance.now();
   const duration=Math.min(1200,Math.max(500,from*.65));
   status.textContent='Scrolling to top, then returning to the main page';
-  photos.inert=true;
+  active.inert=true;
   function tick(now){
    const t=clamp((now-start)/duration);
-   photos.scrollTop=from*(1-ease(t));placeCamera(progress);
+   active.scrollTop=from*(1-ease(t));placeCamera(progress);
    if(t<1)frame=requestAnimationFrame(tick);
-   else {photos.scrollTop=0;scrollingBack=false;go(0);}
+   else {active.scrollTop=0;scrollingBack=false;go(0);}
   }
   frame=requestAnimationFrame(tick);
  }
@@ -101,15 +122,18 @@
   if(target===1)returnHome();else go(1);
  });
  entry.addEventListener('click',()=>go(1));back.addEventListener('click',returnHome);
- homeLogo.addEventListener('click',()=>{if(target===1)returnHome();});
+ homeLogo.addEventListener('click',()=>{if(target!==0)returnHome();});
+ workLogo.addEventListener('click',()=>{if(scrollingBack)return;if(target===-1)returnHome();else go(-1);});
+ workEntry.addEventListener('click',()=>go(-1));workBack.addEventListener('click',returnHome);
  root.addEventListener('keydown',e=>{if(e.key==='Escape')returnHome();});
  photos.addEventListener('scroll',()=>{if(ready)placeCamera(progress);},{passive:true});
  const observer=new ResizeObserver(()=>{if(ready)placeCamera(progress);});observer.observe(viewport);
- Promise.all([load(upperSrc),load(lowerSrc)]).then(images=>{[upper,lower]=images;ready=true;draw(0);camera.disabled=false;entry.disabled=false;status.textContent='Camera entrance';}).catch(()=>{
+ Promise.all([load(upperSrc),load(lowerSrc)]).then(images=>{[upper,lower]=images;ready=true;draw(0);camera.disabled=false;entry.disabled=false;workLogo.disabled=false;workEntry.disabled=false;status.textContent='Home Canvas';}).catch(()=>{
   // Keep Photography reachable even if a cover texture fails to download.
   ready=true;
   draw(0);
   camera.disabled=false;entry.disabled=false;
+  workLogo.disabled=false;workEntry.disabled=false;
   status.textContent='Camera animation unavailable. Photography is still available.';
  });
  load(referenceSrc).then(img=>{const canvases=root.querySelectorAll('.gallery canvas');const crops=[[1348,263,274,314],[1348,588,132,178],[1491,588,132,178]];canvases.forEach((canvas,i)=>{canvas.getContext('2d').drawImage(img,...crops[i],0,0,canvas.width,canvas.height);});}).catch(()=>{status.textContent='Sample photographs could not load.';});
