@@ -3,6 +3,7 @@
  const root=document.getElementById('camera-portfolio');
  const track=root.querySelector('.track'),camera=root.querySelector('.camera'),entry=root.querySelector('.entry'),back=root.querySelector('.back'),home=root.querySelector('.home'),photos=root.querySelector('.photos'),status=root.querySelector('.status');
  const viewport=root.querySelector('.viewport'),brand=root.querySelector('.page-brand');
+ const homeLogo=root.querySelector('.home-logo');
  track.appendChild(camera);
  const ctx=root.querySelector('.cover').getContext('2d');
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -32,6 +33,8 @@
   track.style.setProperty('--view-width',vw+'px');
   track.style.setProperty('--travel',travel+'px');
   track.style.transform='translateX('+(-travel*(1-ease(p)))+'px)';
+  homeLogo.style.left=(vw-36)+'px';
+  homeLogo.style.top=(startY+startHeight/2-36)+'px';
   // Keep the bottom edge aligned with content until the logo docks in the header.
   const height=width*1250/2048;
   const x=(vw-width)/2,y=Math.max(16,startY-photos.scrollTop+startHeight-height);
@@ -56,8 +59,8 @@
  }
  function finish(){
   home.inert=Boolean(target);photos.inert=!target;
-  status.textContent=target?'Photography. Scroll down to turn the camera into the page logo.':'Camera entrance';
-  camera.setAttribute('aria-label',target?'Return to main page':'Open Photography');
+  status.textContent=target?'Camera Canvas. Scroll to explore Photography.':'Home Canvas';
+  camera.setAttribute('aria-label',target?'Return to Home Canvas':'Open Camera Canvas');
   (target?back:camera).focus({preventScroll:true});
  }
  function go(next){
@@ -98,6 +101,7 @@
   if(target===1)returnHome();else go(1);
  });
  entry.addEventListener('click',()=>go(1));back.addEventListener('click',returnHome);
+ homeLogo.addEventListener('click',()=>{if(target===1)returnHome();});
  root.addEventListener('keydown',e=>{if(e.key==='Escape')returnHome();});
  photos.addEventListener('scroll',()=>{if(ready)placeCamera(progress);},{passive:true});
  const observer=new ResizeObserver(()=>{if(ready)placeCamera(progress);});observer.observe(viewport);
