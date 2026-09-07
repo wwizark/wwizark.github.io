@@ -34,30 +34,30 @@
   track.style.width=(vw+2*travel)+'px';
   track.style.setProperty('--view-width',vw+'px');
   track.style.setProperty('--travel',travel+'px');
-  const workProgress=clamp(-p);
+  const workProgress=clamp(-p),cameraProgress=clamp(p);
   const pan=p>=0?ease(p):-ease(-p);
   track.style.transform='translateX('+(-travel*(1-pan))+'px)';
   const centerY=startY+startHeight/2,workCenter=vw/2+2*travel;
-  // First the edges meet, then the two marks separate vertically.
-  const meet=ease(workProgress/.55),scatter=ease((workProgress-.55)/.45);
-  const contactX=workCenter-162;
-  const homeX=(vw-36)+(contactX-(vw-36))*meet+126*scatter;
-  const cameraMeet=ease(p/.55),cameraScatter=ease((p-.55)/.45);
-  const cameraContactX=vw/2+startWidth/2;
-  const cameraHomeX=(vw-36)+(cameraContactX-(vw-36))*cameraMeet+(vw/2-36-cameraContactX)*cameraScatter;
-  homeLogo.style.left=(p>0?cameraHomeX:homeX)+'px';
-  const homeRise=p>0?cameraScatter:scatter;
-  homeLogo.style.top=(centerY-36+(16-(centerY-36))*homeRise)+'px';
-  const workWidth=180-108*scatter,workHeight=110-66*scatter;
-  workLogo.style.left=(workCenter-workWidth/2)+'px';
-  workLogo.style.top=(centerY-55+(vh-96-(centerY-55))*scatter)+'px';
-  workLogo.style.width=workWidth+'px';workLogo.style.height=workHeight+'px';
-  workLogo.style.visibility=p>0?'hidden':'visible';
+  // At either side edge, Home stays just above the neighboring canvas mark.
+  const cameraSeparate=ease((cameraProgress-.55)/.45);
+  const workSeparate=ease((workProgress-.55)/.45);
+  const homeWorkLeft=vw/2+travel-36;
+  homeLogo.style.left=(vw-36+(homeWorkLeft-(vw-36))*workProgress)+'px';
+  const homeAboveWork=centerY-55-80;
+  const homeAboveCamera=startY-80;
+  const homeDestination=p>0?homeAboveWork:homeAboveCamera;
+  const separation=p>0?cameraSeparate:workSeparate;
+  homeLogo.style.top=(centerY-36+(homeDestination-(centerY-36))*separation)+'px';
+  const workCameraPair=ease(cameraProgress);
+  workLogo.style.left=(workCenter-90+(vw-90-(workCenter-90))*workCameraPair)+'px';
+  workLogo.style.top=(centerY-55)+'px';
+  workLogo.style.width='180px';workLogo.style.height='110px';
+  workLogo.style.visibility='visible';
   entry.style.left='24px';entry.style.top=(centerY+startHeight/2+16)+'px';
   workEntry.style.top=(centerY+startHeight/2+16)+'px';
   // Keep the bottom edge aligned with content until the logo docks in the header.
   const height=width*1250/2048;
-  const x=(vw-width)/2,y=Math.max(Math.min(startY,cameraDockY),startY-photos.scrollTop+startHeight-height);
+  const x=(vw-width)/2+travel*workProgress,y=Math.max(Math.min(startY,cameraDockY),startY-photos.scrollTop+startHeight-height);
   camera.style.left='0px';camera.style.top='0px';
   camera.style.width=startWidth+'px';camera.style.height=(startWidth*1250/2048)+'px';
   camera.style.transform='translate('+x+'px,'+y+'px) scale('+(width/startWidth)+')';
