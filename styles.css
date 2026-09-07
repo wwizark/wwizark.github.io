@@ -1,0 +1,63 @@
+:root {color-scheme:light;font-family:Georgia,'Times New Roman',serif;color:#353a40;background:#f1efeb;}
+html,body {margin:0;width:100%;height:100%;}
+body {overflow:hidden;}
+button,a {-webkit-tap-highlight-color:transparent;}
+button:focus-visible,a:focus-visible {outline:2px solid #536c80;outline-offset:6px;}
+button:disabled {cursor:wait;}
+
+#camera-portfolio {font-family:Georgia,serif;color:#353a40;width:100%;}
+#camera-portfolio * {box-sizing:border-box;}
+#camera-portfolio .viewport {position:relative;overflow:hidden;max-width:460px;height:650px;margin:auto;background:#eef0ec;}
+#camera-portfolio .track {position:absolute;inset:0;display:flex;width:200%;will-change:transform;}
+#camera-portfolio .page {position:relative;width:50%;height:100%;flex:none;background:radial-gradient(ellipse at 30% 30%,#b1cede,transparent 50%),radial-gradient(ellipse at 95% 90%,#b9b3cc,transparent 48%),radial-gradient(ellipse at 90% 15%,#d7dfcd,transparent 40%),#f1efeb;overflow:hidden;}
+#camera-portfolio header {position:absolute;top:30px;left:28px;right:28px;display:flex;justify-content:space-between;align-items:center;z-index:3;}
+#camera-portfolio button {font:inherit;color:inherit;cursor:pointer;}
+#camera-portfolio .camera {position:absolute;width:680px;height:415.039px;left:-420px;top:164px;padding:0;border:0;background:transparent;transform:translateX(0);}
+#camera-portfolio .body {display:block;width:100%;height:100%;}
+#camera-portfolio .cover {position:absolute;left:54.736328125%;top:42.56%;width:16.89453125%;height:22.72%;}
+#camera-portfolio .entry {position:absolute;right:28px;top:215px;padding:12px 0;border:0;background:transparent;font-size:22px;z-index:5;}
+#camera-portfolio .back {border:0;background:transparent;min-height:44px;padding:0 8px 0 0;}
+#camera-portfolio .gallery {position:absolute;top:100px;left:28px;right:28px;}
+#camera-portfolio h1 {font-weight:400;font-size:34px;margin:0 0 18px;}
+#camera-portfolio .sample {display:block;width:100%;height:220px;object-fit:cover;background:#d2d2cf;}
+#camera-portfolio .pair {display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;}
+#camera-portfolio .pair canvas {width:100%;height:110px;object-fit:cover;background:#d2d2cf;}
+#camera-portfolio .sample-label {font:12px Arial,sans-serif;margin-top:12px;color:#52575c;}
+#camera-portfolio .status {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);}
+@media(max-width:380px){#camera-portfolio .viewport{height:610px;}#camera-portfolio .camera{width:600px;height:366.211px;left:-377px;top:185px;}#camera-portfolio .entry{top:170px;font-size:21px;}#camera-portfolio .sample{height:200px;}#camera-portfolio .pair canvas{height:100px;}}
+
+#camera-portfolio .camera {left:-252px;top:230px;width:420px;height:256.348px;z-index:12;transform-origin:top left;will-change:transform;touch-action:pan-y;}
+#camera-portfolio .entry {top:252px;font-size:22px;}
+#camera-portfolio .photos {overflow-y:hidden;overscroll-behavior:contain;scrollbar-width:thin;}
+#camera-portfolio .photos header {position:sticky;top:0;left:0;right:0;height:76px;padding:16px 28px;margin-bottom:-76px;background:rgba(241,239,235,.93);backdrop-filter:blur(16px);z-index:8;}
+#camera-portfolio .page-brand {position:absolute;left:100px;right:110px;text-align:center;font-size:16px;opacity:0;}
+#camera-portfolio .gallery {position:relative;top:auto;left:auto;right:auto;padding:270px 28px 50px;}
+#camera-portfolio .sample {height:auto;max-height:360px;object-fit:cover;}
+#camera-portfolio .pair canvas {height:240px;}
+#camera-portfolio .scroll-cue {font:14px Arial,sans-serif;margin:0 0 24px;color:#555e66;}
+@media(max-width:380px){#camera-portfolio .camera{left:-228px;top:220px;width:380px;height:231.934px;}#camera-portfolio .entry{top:248px;font-size:21px;}#camera-portfolio .pair canvas{height:210px;}#camera-portfolio .gallery{padding-left:22px;padding-right:22px;}}
+
+#camera-portfolio .track {transform:translateX(-50%);background:radial-gradient(ellipse at 15% 30%,#b1cede,transparent 48%),radial-gradient(ellipse at 60% 85%,#b9b3cc,transparent 48%),radial-gradient(ellipse at 90% 15%,#d7dfcd,transparent 40%),#f1efeb;}
+#camera-portfolio .page {background:transparent;}
+#camera-portfolio .photos {order:0;}
+#camera-portfolio .home {order:1;}
+
+#camera-portfolio .track {display:block;width:200%;transform:none;}
+#camera-portfolio .page {position:absolute;top:0;width:var(--view-width,460px);height:100%;}
+#camera-portfolio .home {left:var(--travel,256px);z-index:2;}
+#camera-portfolio .photos {left:0;z-index:1;}
+#camera-portfolio .camera {z-index:12;}
+
+#camera-portfolio .viewport {width:100%;max-width:none;height:100svh;min-height:0;}
+#camera-portfolio .entry {left:clamp(170px,28vw,420px);right:auto;}
+#camera-portfolio .gallery {width:100%;max-width:1000px;margin:0 auto;padding-right:clamp(24px,5vw,72px);padding-left:clamp(24px,5vw,72px);}
+#camera-portfolio .sample {width:100%;height:auto;max-height:620px;object-fit:contain;background:transparent;}
+#camera-portfolio .pair {gap:24px;margin-top:24px;}
+#camera-portfolio .pair canvas {height:auto;max-height:480px;object-fit:contain;background:transparent;}
+#camera-portfolio .sample-label {font-size:14px;line-height:1.5;margin-top:24px;}
+#camera-portfolio header {font-size:18px;}
+#camera-portfolio .back {font-size:16px;}
+#camera-portfolio .scroll-cue {font-size:16px;line-height:1.5;}
+@media(min-width:800px) {#camera-portfolio h1{font-size:48px;}#camera-portfolio .entry{font-size:30px;}}
+@media(max-width:480px) {#camera-portfolio .pair{gap:12px;margin-top:12px;}}
+@media(prefers-reduced-motion:reduce) {html{scroll-behavior:auto;}}
