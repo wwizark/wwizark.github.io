@@ -38,29 +38,29 @@
   const pan=p>=0?ease(p):-ease(-p);
   track.style.transform='translateX('+(-travel*(1-pan))+'px)';
   const centerY=startY+startHeight/2,workCenter=vw/2+2*travel;
-  // At either side edge, Home stays just above the neighboring canvas mark.
-  const cameraSeparate=ease((cameraProgress-.55)/.45);
-  const workSeparate=ease((workProgress-.55)/.45);
+  // The Home mark moves with the canvas and is the only mark left at either edge.
   const homeWorkLeft=vw/2+travel-36;
   homeLogo.style.left=(vw-36+(homeWorkLeft-(vw-36))*workProgress)+'px';
-  const homeAboveWork=centerY-55-80;
-  const homeAboveCamera=startY-80;
-  const homeDestination=p>0?homeAboveWork:homeAboveCamera;
-  const separation=p>0?cameraSeparate:workSeparate;
-  homeLogo.style.top=(centerY-36+(homeDestination-(centerY-36))*separation)+'px';
+  homeLogo.style.top=(centerY-36)+'px';
   const workCameraPair=ease(cameraProgress);
-  workLogo.style.left=(workCenter-90+(vw-90-(workCenter-90))*workCameraPair)+'px';
+  workLogo.style.left=(workCenter-90)+'px';
   workLogo.style.top=(centerY-55)+'px';
   workLogo.style.width='180px';workLogo.style.height='110px';
   workLogo.style.visibility='visible';
+  workLogo.style.opacity='1';
+  workLogo.style.pointerEvents='auto';
+  workLogo.tabIndex=0;
   entry.style.left='24px';entry.style.top=(centerY+startHeight/2+16)+'px';
   workEntry.style.top=(centerY+startHeight/2+16)+'px';
   // Keep the bottom edge aligned with content until the logo docks in the header.
   const height=width*1250/2048;
-  const x=(vw-width)/2+travel*workProgress,y=Math.max(Math.min(startY,cameraDockY),startY-photos.scrollTop+startHeight-height);
+  const x=(vw-width)/2,y=Math.max(Math.min(startY,cameraDockY),startY-photos.scrollTop+startHeight-height);
   camera.style.left='0px';camera.style.top='0px';
   camera.style.width=startWidth+'px';camera.style.height=(startWidth*1250/2048)+'px';
   camera.style.transform='translate('+x+'px,'+y+'px) scale('+(width/startWidth)+')';
+  camera.style.opacity='1';
+  camera.style.pointerEvents='auto';
+  camera.tabIndex=0;
   root.querySelector('.gallery').style.paddingTop=(startY+startWidth*1250/2048+32)+'px';
   home.style.opacity=String(1-ease(Math.abs(p)/.65));
   home.style.pointerEvents=p===0?'auto':'none';
