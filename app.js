@@ -23,7 +23,8 @@
   const startY=Math.min(vw<=380?220:230,Math.max(80,vh*.28));
   const startHeight=startWidth*1250/2048;
   const logoHeight=72*1250/2048;
-  const dockDistance=startY+startHeight-16-logoHeight;
+  const cameraDockY=104;
+  const dockDistance=Math.max(1,startY+startHeight-cameraDockY-logoHeight);
   const scroll=ease(photos.scrollTop/dockDistance);
   const width=startWidth+(72-startWidth)*scroll;
   const centeredX=(vw-startWidth)/2;
@@ -41,18 +42,22 @@
   const meet=ease(workProgress/.55),scatter=ease((workProgress-.55)/.45);
   const contactX=workCenter-162;
   const homeX=(vw-36)+(contactX-(vw-36))*meet+126*scatter;
-  homeLogo.style.left=homeX+'px';
-  homeLogo.style.top=(centerY-36+(vh-96-(centerY-36))*scatter)+'px';
+  const cameraMeet=ease(p/.55),cameraScatter=ease((p-.55)/.45);
+  const cameraContactX=vw/2+startWidth/2;
+  const cameraHomeX=(vw-36)+(cameraContactX-(vw-36))*cameraMeet+(vw/2-36-cameraContactX)*cameraScatter;
+  homeLogo.style.left=(p>0?cameraHomeX:homeX)+'px';
+  const homeRise=p>0?cameraScatter:scatter;
+  homeLogo.style.top=(centerY-36+(16-(centerY-36))*homeRise)+'px';
   const workWidth=180-108*scatter,workHeight=110-66*scatter;
   workLogo.style.left=(workCenter-workWidth/2)+'px';
-  workLogo.style.top=(centerY-55+(16-(centerY-55))*scatter)+'px';
+  workLogo.style.top=(centerY-55+(vh-96-(centerY-55))*scatter)+'px';
   workLogo.style.width=workWidth+'px';workLogo.style.height=workHeight+'px';
   workLogo.style.visibility=p>0?'hidden':'visible';
   entry.style.left='24px';entry.style.top=(centerY+startHeight/2+16)+'px';
   workEntry.style.top=(centerY+startHeight/2+16)+'px';
   // Keep the bottom edge aligned with content until the logo docks in the header.
   const height=width*1250/2048;
-  const x=(vw-width)/2,y=Math.max(16,startY-photos.scrollTop+startHeight-height);
+  const x=(vw-width)/2,y=Math.max(Math.min(startY,cameraDockY),startY-photos.scrollTop+startHeight-height);
   camera.style.left='0px';camera.style.top='0px';
   camera.style.width=startWidth+'px';camera.style.height=(startWidth*1250/2048)+'px';
   camera.style.transform='translate('+x+'px,'+y+'px) scale('+(width/startWidth)+')';
