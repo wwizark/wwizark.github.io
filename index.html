@@ -6,29 +6,43 @@
   <meta name="theme-color" content="#f1efeb">
   <meta name="description" content="Zekai Wei — photography, explored through a moving canvas.">
   <title>Zekai Wei — Photography</title>
-  <link rel="stylesheet" href="./styles.css?v=edge-pair-2">
-  <script src="./app.js?v=edge-pair-2" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=site-final-9">
+  <script src="./app.js?v=mobile-canvas-11" defer></script>
+  <script src="./nav.js?v=nav-bar-1" defer></script>
 </head>
 <body>
 <main id="camera-portfolio">
 
 <div class="viewport">
+ <header class="site-nav canvas-nav" aria-label="Site navigation"><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="page-map">Menu</button><span class="nav-title canvas-nav-title">Home</span><button class="contact-toggle" type="button" aria-expanded="false" aria-controls="contact-panel">Contact</button></header>
+ <button class="camera" type="button" aria-label="Open Camera Canvas" disabled><img class="body" src="./assets/camera-front.webp" width="2048" height="1250" alt="Black compact camera" fetchpriority="high"><canvas class="cover" width="346" height="284" aria-hidden="true"></canvas></button>
+ <button class="home-logo" type="button" aria-label="Home Canvas" aria-pressed="false" title="Home Canvas"><span class="home-mark" aria-hidden="true">ZW</span><span class="home-cue" aria-hidden="true"><span>Tap ZW to open</span><i></i><small>Home index</small></span></button>
+ <button class="work-logo" type="button" aria-label="Open Work Canvas" disabled>Work</button>
+ <button class="entry" aria-label="Open Photography Canvas" disabled>Photography</button>
+ <button class="work-entry" aria-label="Open Work Canvas" disabled>Work</button>
  <div class="track">
-  <button class="home-logo" type="button" aria-label="Home Canvas" title="Home Canvas"><span aria-hidden="true">ZW</span></button>
-  <button class="work-logo" type="button" aria-label="Open Work Canvas" disabled>Work</button>
   <section class="page home" aria-label="Home Canvas">
-   <header><span>Zekai Wei</span></header>
-   <button class="camera" type="button" aria-label="Open Camera Canvas" disabled><img class="body" src="./assets/camera-front.webp" width="2048" height="1250" alt="Black compact camera" fetchpriority="high"><canvas class="cover" width="346" height="284" aria-hidden="true"></canvas></button>
-   <button class="entry" disabled>Photography</button>
-   <button class="work-entry" disabled>Work</button>
+   <header class="site-nav home-nav section-nav"><span>Zekai Wei</span><span class="nav-title">Home</span><span class="nav-side" aria-hidden="true"></span></header>
+   <div class="home-content" aria-label="Home page preview">
+    <p class="canvas-kicker">PERSONAL INDEX</p>
+    <h1>A small collection of places, images, and ideas.</h1>
+    <p class="home-intro">A temporary preview of the Home canvas and its scrolling behavior.</p>
+    <div class="canvas-grid">
+     <article class="canvas-card"><span>01</span><h2>About</h2><p>A brief introduction and notes on the work.</p></article>
+     <article class="canvas-card"><span>02</span><h2>Selected notes</h2><p>Research fragments and ideas worth returning to.</p></article>
+    </div>
+    <div class="home-sections" aria-label="Sample Home sections">
+     <section class="home-section"><span class="home-section-number">05</span><div><p class="home-section-label">In progress</p><h2>Things taking shape</h2><p>A rotating space for current experiments and unfinished ideas.</p><span class="home-section-meta">Notes · Fragments · Updates</span></div></section>
+    </div>
+   </div>
   </section>
   <section class="page photos" aria-label="Camera Canvas" inert>
-   <header><button class="back">‹ Back</button><span class="page-brand">Photography</span></header>
-   <div class="gallery"><h1>Photography</h1><p class="scroll-cue">Scroll to explore</p><canvas class="sample" width="274" height="314" role="img" aria-label="Sample architectural photograph from the reference"></canvas><div class="pair"><canvas width="132" height="178" role="img" aria-label="Sample street photograph"></canvas><canvas width="132" height="178" role="img" aria-label="Sample staircase photograph"></canvas></div><p class="sample-label">Study images · Gallery layout preview</p></div>
+   <header class="site-nav photos-nav section-nav"><button class="back">‹ Back</button><span class="page-brand nav-title">Photography</span><span class="nav-side" aria-hidden="true"></span></header>
+   <div class="gallery"><h1>Photography</h1><p class="scroll-cue">Scroll to explore</p><div class="photo-stack" aria-label="Photography gallery"><a class="photo-card" href="./photo-01.html"><img class="photo" src="./assets/_M000099.jpeg" width="6192" height="4128" alt="Thresholds — architectural study" fetchpriority="high"><span class="photo-card-meta"><strong>Thresholds</strong><span>Architectural study</span></span></a><a class="photo-card" href="./photo-02.html"><img class="photo" src="./assets/_M000575.jpeg" width="6192" height="4128" alt="Staged Encounters — exhibition study" loading="lazy"><span class="photo-card-meta"><strong>Staged Encounters</strong><span>Exhibition study</span></span></a><a class="photo-card" href="./photo-03.html"><img class="photo" src="./assets/_M000703.jpeg" width="6192" height="4128" alt="Reflected City — architectural study" loading="lazy"><span class="photo-card-meta"><strong>Reflected City</strong><span>Architectural study</span></span></a></div><a class="photography-cta" href="./photography.html">Enter the Photography site <span aria-hidden="true">→</span></a></div>
   </section>
   <section class="page work" aria-label="Work Canvas" inert>
-   <header><button class="work-back" type="button">‹ Home</button></header>
-   <div class="work-content"><h1>Work</h1><p>A space for projects, ideas, and things in progress.</p><div class="project-placeholder">Projects coming soon</div></div>
+   <header class="site-nav work-nav section-nav"><button class="work-back" type="button">‹ Home</button><span class="nav-title">Work</span><span class="nav-side" aria-hidden="true"></span></header>
+   <div class="work-content"><h1>Work</h1><p>A space for projects, ideas, and things in progress.</p><div class="project-placeholder">Projects coming soon</div><div class="work-grid" aria-label="Sample work projects"><article class="work-card"><span>PROJECT 01</span><h2>Field Notes</h2><p>A placeholder project description with room for context, images, and process.</p><a href="#work">View project →</a></article><article class="work-card"><span>PROJECT 02</span><h2>Soft Structures</h2><p>An example of how a longer case study could sit inside the Work canvas.</p><a href="#work">View project →</a></article><article class="work-card"><span>PROJECT 03</span><h2>Afterimage</h2><p>More temporary content to make the page long enough to test scrolling and navigation.</p><a href="#work">View project →</a></article><article class="work-card"><span>PROJECT 04</span><h2>Open Questions</h2><p>A final placeholder entry for future experiments, collaborations, and unfinished ideas.</p><a href="#work">View project →</a></article></div></div>
   </section>
  </div>
  <span class="status" role="status" aria-live="polite">Loading camera</span>
