@@ -742,6 +742,9 @@
    placeView();
    if(handoffProgress<1){
     swipe.panStarted=false;
+    swipe.travel=0;
+    swipe.progress=0;
+    swipe.target=null;
     return;
    }
    swipe.panStarted=true;
