@@ -6,20 +6,27 @@
   <meta name="theme-color" content="#f1efeb">
   <meta name="description" content="Zekai Wei — photography, explored through a moving canvas.">
   <title>Zekai Wei — Photography</title>
-  <link rel="stylesheet" href="./styles.css?v=site-final-9">
-  <script src="./app.js?v=mobile-canvas-11" defer></script>
-  <script src="./nav.js?v=nav-bar-1" defer></script>
+  <link rel="stylesheet" href="./styles.css?v=33">
+  <script src="./app.js?v=33" defer></script>
+  <script src="./nav.js?v=33" defer></script>
 </head>
 <body>
 <main id="camera-portfolio">
 
+<noscript><div class="noscript-fallback">This site normally opens as an interactive camera canvas that needs JavaScript. <a href="./photography/index.html">Browse the Photography section →</a></div></noscript>
+
 <div class="viewport">
- <header class="site-nav canvas-nav" aria-label="Site navigation"><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="page-map">Menu</button><span class="nav-title canvas-nav-title">Home</span><button class="contact-toggle" type="button" aria-expanded="false" aria-controls="contact-panel">Contact</button></header>
- <button class="camera" type="button" aria-label="Open Camera Canvas" disabled><img class="body" src="./assets/camera-front.webp" width="2048" height="1250" alt="Black compact camera" fetchpriority="high"><canvas class="cover" width="346" height="284" aria-hidden="true"></canvas></button>
- <button class="home-logo" type="button" aria-label="Home Canvas" aria-pressed="false" title="Home Canvas"><span class="home-mark" aria-hidden="true">ZW</span><span class="home-cue" aria-hidden="true"><span>Tap ZW to open</span><i></i><small>Home index</small></span></button>
+ <header class="site-nav canvas-nav" aria-label="Site navigation"><button class="menu-toggle" type="button" aria-expanded="false" aria-controls="page-map">Menu</button><div class="nav-title canvas-dots" role="button" tabindex="0" aria-label="Collapse page and show navigation"><i class="dot-photos"></i><i class="dot-home"></i><i class="dot-work"></i><i class="dot-notes"></i></div><button class="contact-toggle" type="button" aria-expanded="false" aria-controls="contact-panel">Contact</button></header>
+ <div class="canvas-dock" aria-hidden="true"></div>
+ <div class="canvas-watermark" aria-hidden="true"></div>
+ <button class="camera" type="button" aria-label="Open Camera Canvas" disabled><picture><source type="image/avif" srcset="./assets/camera/camera-front-480.avif 480w, ./assets/camera/camera-front-960.avif 960w" sizes="(max-width:380px) 380px, 420px"><img class="body" src="./assets/camera/camera-front-960.jpeg" srcset="./assets/camera/camera-front-480.jpeg 480w, ./assets/camera/camera-front-960.jpeg 960w" sizes="(max-width:380px) 380px, 420px" width="2048" height="1250" alt="Black compact camera" fetchpriority="high" decoding="async"></picture><canvas class="cover" width="346" height="284" aria-hidden="true"></canvas></button>
+ <button class="home-logo" type="button" aria-label="Home Canvas" aria-pressed="false" title="Home Canvas"><span class="home-mark" aria-hidden="true">ZW</span><span class="home-cue" aria-hidden="true"><small>Open to see</small><i class="home-cue-line"></i><span>About me</span><i class="home-cue-line"></i><span>Selected notes</span><i class="home-cue-line"></i><span>Things happening</span><i class="home-cue-line"></i><span>More</span></span></button>
  <button class="work-logo" type="button" aria-label="Open Work Canvas" disabled>Work</button>
- <button class="entry" aria-label="Open Photography Canvas" disabled>Photography</button>
+ <button class="notes-logo" type="button" aria-label="Open Notes Canvas" disabled>Notes</button>
+ <button class="entry" aria-label="Open Photos Canvas" disabled>Photos</button>
  <button class="work-entry" aria-label="Open Work Canvas" disabled>Work</button>
+ <button class="notes-entry" aria-label="Open Notes Canvas" disabled>Notes</button>
+ <button class="home-entry" type="button" aria-label="Home" disabled>Home</button>
  <div class="track">
   <section class="page home" aria-label="Home Canvas">
    <header class="site-nav home-nav section-nav"><span>Zekai Wei</span><span class="nav-title">Home</span><span class="nav-side" aria-hidden="true"></span></header>
@@ -27,22 +34,25 @@
     <p class="canvas-kicker">PERSONAL INDEX</p>
     <h1>A small collection of places, images, and ideas.</h1>
     <p class="home-intro">A temporary preview of the Home canvas and its scrolling behavior.</p>
-    <div class="canvas-grid">
-     <article class="canvas-card"><span>01</span><h2>About</h2><p>A brief introduction and notes on the work.</p></article>
-     <article class="canvas-card"><span>02</span><h2>Selected notes</h2><p>Research fragments and ideas worth returning to.</p></article>
-    </div>
     <div class="home-sections" aria-label="Sample Home sections">
-     <section class="home-section"><span class="home-section-number">05</span><div><p class="home-section-label">In progress</p><h2>Things taking shape</h2><p>A rotating space for current experiments and unfinished ideas.</p><span class="home-section-meta">Notes · Fragments · Updates</span></div></section>
+     <section class="home-section"><span class="home-section-number">01</span><div><h2>About me</h2><p>A brief introduction and notes on the work, and how to get in touch.</p><span class="home-section-meta">Intro · Bio · Contact</span></div></section>
+     <section class="home-section"><span class="home-section-number">02</span><div><h2>Selected notes</h2><p>Research fragments and ideas worth returning to over time.</p><span class="home-section-meta">Notes · Reading · Links</span></div></section>
+     <section class="home-section"><span class="home-section-number">03</span><div><h2>Things happening</h2><p>A rotating space for current experiments and unfinished ideas.</p><span class="home-section-meta">Now · Fragments · Updates</span></div></section>
+     <section class="home-section"><span class="home-section-number">04</span><div><h2>More</h2><p>Placeholder for whatever comes next — collaborations, links, and loose ends.</p><span class="home-section-meta">Links · Contact · Misc</span></div></section>
     </div>
    </div>
   </section>
   <section class="page photos" aria-label="Camera Canvas" inert>
    <header class="site-nav photos-nav section-nav"><button class="back">‹ Back</button><span class="page-brand nav-title">Photography</span><span class="nav-side" aria-hidden="true"></span></header>
-   <div class="gallery"><h1>Photography</h1><p class="scroll-cue">Scroll to explore</p><div class="photo-stack" aria-label="Photography gallery"><a class="photo-card" href="./photo-01.html"><img class="photo" src="./assets/M000099.jpeg" width="6192" height="4128" alt="Thresholds — architectural study" fetchpriority="high"><span class="photo-card-meta"><strong>Thresholds</strong><span>Architectural study</span></span></a><a class="photo-card" href="./photo-02.html"><img class="photo" src="./assets/M000575.jpeg" width="6192" height="4128" alt="Staged Encounters — exhibition study" loading="lazy"><span class="photo-card-meta"><strong>Staged Encounters</strong><span>Exhibition study</span></span></a><a class="photo-card" href="./photo-03.html"><img class="photo" src="./assets/M000703.jpeg" width="6192" height="4128" alt="Reflected City — architectural study" loading="lazy"><span class="photo-card-meta"><strong>Reflected City</strong><span>Architectural study</span></span></a></div><a class="photography-cta" href="./photography.html">Enter the Photography site <span aria-hidden="true">→</span></a></div>
+   <div class="gallery"><p class="scroll-cue">Scroll to explore</p><div class="photo-stack" aria-label="Photography gallery"><a class="photo-card" href="./photography/photo-01.html"><picture><source type="image/avif" srcset="./assets/photography/M000099-800.avif 800w, ./assets/photography/M000099-1600.avif 1600w" sizes="(max-width:700px) 92vw, 600px"><img class="photo" src="./assets/photography/M000099-800.jpeg" srcset="./assets/photography/M000099-800.jpeg 800w, ./assets/photography/M000099-1600.jpeg 1600w" sizes="(max-width:700px) 92vw, 600px" width="6192" height="4128" alt="Thresholds — architectural study" fetchpriority="high" decoding="async"></picture><span class="photo-card-meta"><strong>Thresholds</strong><span>Architectural study</span></span></a><a class="photo-card" href="./photography/photo-02.html"><picture><source type="image/avif" srcset="./assets/photography/M000575-800.avif 800w, ./assets/photography/M000575-1600.avif 1600w" sizes="(max-width:700px) 92vw, 600px"><img class="photo" src="./assets/photography/M000575-800.jpeg" srcset="./assets/photography/M000575-800.jpeg 800w, ./assets/photography/M000575-1600.jpeg 1600w" sizes="(max-width:700px) 92vw, 600px" width="6192" height="4128" alt="Staged Encounters — exhibition study" loading="lazy" decoding="async"></picture><span class="photo-card-meta"><strong>Staged Encounters</strong><span>Exhibition study</span></span></a><a class="photo-card" href="./photography/photo-03.html"><picture><source type="image/avif" srcset="./assets/photography/M000703-800.avif 800w, ./assets/photography/M000703-1600.avif 1600w" sizes="(max-width:700px) 92vw, 600px"><img class="photo" src="./assets/photography/M000703-800.jpeg" srcset="./assets/photography/M000703-800.jpeg 800w, ./assets/photography/M000703-1600.jpeg 1600w" sizes="(max-width:700px) 92vw, 600px" width="6192" height="4128" alt="Reflected City — architectural study" loading="lazy" decoding="async"></picture><span class="photo-card-meta"><strong>Reflected City</strong><span>Architectural study</span></span></a></div><a class="photography-cta" href="./photography/index.html">Enter the Photography site <span aria-hidden="true">→</span></a></div>
   </section>
   <section class="page work" aria-label="Work Canvas" inert>
    <header class="site-nav work-nav section-nav"><button class="work-back" type="button">‹ Home</button><span class="nav-title">Work</span><span class="nav-side" aria-hidden="true"></span></header>
-   <div class="work-content"><h1>Work</h1><p>A space for projects, ideas, and things in progress.</p><div class="project-placeholder">Projects coming soon</div><div class="work-grid" aria-label="Sample work projects"><article class="work-card"><span>PROJECT 01</span><h2>Field Notes</h2><p>A placeholder project description with room for context, images, and process.</p><a href="#work">View project →</a></article><article class="work-card"><span>PROJECT 02</span><h2>Soft Structures</h2><p>An example of how a longer case study could sit inside the Work canvas.</p><a href="#work">View project →</a></article><article class="work-card"><span>PROJECT 03</span><h2>Afterimage</h2><p>More temporary content to make the page long enough to test scrolling and navigation.</p><a href="#work">View project →</a></article><article class="work-card"><span>PROJECT 04</span><h2>Open Questions</h2><p>A final placeholder entry for future experiments, collaborations, and unfinished ideas.</p><a href="#work">View project →</a></article></div></div>
+   <div class="work-content"><p>A space for projects, ideas, and things in progress.</p><div class="project-placeholder">Projects coming soon</div><div class="work-grid" aria-label="Sample work projects"><article class="work-card"><span>PROJECT 01</span><h2>Field Notes</h2><p>A placeholder project description with room for context, images, and process.</p><a href="#work">View project →</a></article><article class="work-card"><span>PROJECT 02</span><h2>Soft Structures</h2><p>An example of how a longer case study could sit inside the Work canvas.</p><a href="#work">View project →</a></article><article class="work-card"><span>PROJECT 03</span><h2>Afterimage</h2><p>More temporary content to make the page long enough to test scrolling and navigation.</p><a href="#work">View project →</a></article><article class="work-card"><span>PROJECT 04</span><h2>Open Questions</h2><p>A final placeholder entry for future experiments, collaborations, and unfinished ideas.</p><a href="#work">View project →</a></article></div></div>
+  </section>
+  <section class="page notes" aria-label="Notes Canvas" inert>
+   <header class="site-nav notes-nav section-nav"><button class="notes-back" type="button">‹ Home</button><span class="nav-title">Notes</span><span class="nav-side" aria-hidden="true"></span></header>
+   <div class="notes-content"><p>A demonstration canvas in the loop — same open, scroll, and return interaction as every other canvas.</p><div class="project-placeholder">Notes coming soon</div></div>
   </section>
  </div>
  <span class="status" role="status" aria-live="polite">Loading camera</span>

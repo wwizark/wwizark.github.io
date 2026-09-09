@@ -1,2 +1,5 @@
 .DS_Store
 **/.DS_Store
+
+# Source images (not served); build-images.sh regenerates derivatives from these
+assets/*/originals/

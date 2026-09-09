@@ -1,29 +1,232 @@
-
+/*
+ * Camera portfolio — a looping 1-D canvas ring.
+ *
+ * The canvases sit on a ring, in this order, wrapping around:
+ *
+ *      ... Photography -- Home -- Work -- Notes -- Photography ...
+ *
+ * `pos` is the continuous ring position the screen is centred on (an integer
+ * centres that canvas). Panning moves `pos` along the ring by the SHORTEST way
+ * round, so it loops seamlessly. For each canvas we compute `ringRel` — its
+ * signed distance from `pos` in (-N/2, N/2] — and place it from there:
+ *   rel 0  = centred, the full open page;
+ *   rel ±1 = the two neighbours, peeking as logos at the left / right edges;
+ *   |rel| ≥ 2 = off-screen (fades as it wraps around the far side).
+ *
+ * The centred canvas's marker docks up into the nav on scroll (as before).
+ * (Navigation gestures are still being refined; tapping a neighbour pans to it,
+ * Back/Escape returns Home.)
+ *
+ * To add a canvas: add a row to CANVASES, insert its id into ORDER, add its
+ * <section> + marker + edge-label elements. No layout maths change.
+ */
 (()=>{
+ // Tunable timings and sizes (durations in ms).
+ const GO_MS_PER_UNIT=1100;          // slide speed, per ring step
+ const HOME_STATE_MS_PER_UNIT=320;   // Home-logo expand / collapse speed
+ const SCROLL_TOP_MIN=500,SCROLL_TOP_MAX=1200,SCROLL_TOP_FACTOR=.65; // return-to-top
+ const GAP=32;                       // breathing room below a marker before the nav
+ const DOCK_H=44;                    // height of the dock (the title bar)
+ const DOCK_FS=18;                   // title font size in the dock
+ const TITLE_BIG_FACTOR=.16,TITLE_BIG_MIN=30,TITLE_BIG_MAX=64; // title size under the logo
+ const COLLAPSE_DIST=320;            // px of scroll to fully collapse/expand (scroll-paced)
+ const COLLAPSE_DOCK_FRAC=1;         // title reaches the dock exactly as the logo finishes shrinking (in sync)
+ const SCROLL_BUFFER=90;             // px the logo/title hold at full before docking (register the detail view)
+ const PAN_SPLIT=.65;                // fraction of a slide spent opening the lens
+ const EXPANDED=.5;                  // expansion above this counts as "expanded"
+ const PEEK_SCALE=.6;                // neighbour logo size relative to the centred one
+ const LOGO_FONT_FACTOR=.115,LOGO_FONT_MIN=16,LOGO_FONT_MAX=48;
+ const LOGO_MIN=120,LOGO_MAX=420,CONTENT_MIN=720,MOBILE_FLOOR=480,CAMERA_RATIO=1250/2048;
+
+ // Elements.
  const root=document.getElementById('camera-portfolio');
- const track=root.querySelector('.track'),camera=root.querySelector('.camera'),entry=root.querySelector('.entry'),back=root.querySelector('.back'),home=root.querySelector('.home'),photos=root.querySelector('.photos'),status=root.querySelector('.status');
- const viewport=root.querySelector('.viewport'),brand=root.querySelector('.page-brand');
- const homeLogo=root.querySelector('.home-logo'),homeContent=root.querySelector('.home-content');
- const work=root.querySelector('.work'),workLogo=root.querySelector('.work-logo'),workEntry=root.querySelector('.work-entry'),workBack=root.querySelector('.work-back'),workContent=root.querySelector('.work-content');
- const canvasNavTitle=root.querySelector('.canvas-nav-title'),canvasNavMenu=root.querySelector('.menu-toggle');
+ const track=root.querySelector('.track');
+ const camera=root.querySelector('.camera');
+ const entry=root.querySelector('.entry');
+ const back=root.querySelector('.back');
+ const home=root.querySelector('.home');
+ const photos=root.querySelector('.photos');
+ const status=root.querySelector('.status');
+ const viewport=root.querySelector('.viewport');
+ const brand=root.querySelector('.page-brand');
+ const gallery=root.querySelector('.gallery');
+ const photosHeader=photos.querySelector('header');
+ const homeLogo=root.querySelector('.home-logo');
+ const homeContent=root.querySelector('.home-content');
+ const work=root.querySelector('.work');
+ const workLogo=root.querySelector('.work-logo');
+ const workEntry=root.querySelector('.work-entry');
+ const workBack=root.querySelector('.work-back');
+ const workContent=root.querySelector('.work-content');
+ const notes=root.querySelector('.notes');
+ const notesLogo=root.querySelector('.notes-logo');
+ const notesEntry=root.querySelector('.notes-entry');
+ const notesBack=root.querySelector('.notes-back');
+ const notesContent=root.querySelector('.notes-content');
+ const homeEntry=root.querySelector('.home-entry');
+ const canvasDock=root.querySelector('.canvas-dock');
+ const canvasWatermark=root.querySelector('.canvas-watermark');
+ const canvasDots=root.querySelector('.canvas-dots');
+ const canvasDotItems=Array.from(root.querySelectorAll('.canvas-dots i'));   // one per canvas, in ring-index order
+ const canvasNavMenu=root.querySelector('.menu-toggle');
  const ctx=root.querySelector('.cover').getContext('2d');
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
- const upperSrc='./assets/lens-cover-upper.png',lowerSrc='./assets/lens-cover-lower.png';
+
+ // Every canvas as data. `kind` selects marker rendering: 'hub' (compact,
+ // expandable), 'camera' (image + lens, scaled via transform), 'spoke' (a plain
+ // logo box). ORDER defines the ring; each canvas's index is its ring slot.
+ const CANVASES={
+  home:  {id:'home',   title:'Home',        hash:'',              kind:'hub',    el:home,   marker:homeLogo,  entry:homeEntry, content:homeContent, ready:'Home Canvas'},
+  photos:{id:'photos', title:'Photos',       hash:'#photography',  kind:'camera', el:photos, marker:camera,   entry:entry,      back:back,     content:gallery,      openLabel:'Open Camera Canvas', returnLabel:'Return to Home Canvas', opening:'Opening Camera Canvas', ready:'Photos. Scroll to explore.'},
+  work:  {id:'work',   title:'Work',        hash:'#work',         kind:'spoke',  el:work,   marker:workLogo,  entry:workEntry,  back:workBack, content:workContent,  openLabel:'Open Work Canvas',   returnLabel:'Return to Home Canvas', opening:'Opening Work Canvas',   ready:'Work Canvas'},
+  notes: {id:'notes',  title:'Notes',       hash:'#notes',        kind:'spoke',  el:notes,  marker:notesLogo, entry:notesEntry, back:notesBack,content:notesContent, openLabel:'Open Notes Canvas',  returnLabel:'Return to Home Canvas', opening:'Opening Notes Canvas',  ready:'Notes Canvas'},
+ };
+ const ORDER=['photos','home','work','notes'];
+ const N=ORDER.length;
+ ORDER.forEach((id,i)=>{CANVASES[id].index=i;});
+ const ALL=ORDER.map(id=>CANVASES[id]);
+ const SPOKES=ALL.filter(c=>c.kind!=='hub');
+
+ const upperSrc='./assets/camera/lens-cover-upper.png',lowerSrc='./assets/camera/lens-cover-lower.png';
  const aperture=new Path2D('M89 0 L258 0 Q346 0 346 87 L346 189 Q346 284 257 284 L89 284 Q0 284 0 195 L0 88 Q0 0 89 0 Z');
- let upper,lower,progress=0,target=0,frame=0,logoFrame=0,ready=false,returnScroll=0,homeExpansion=0,logoStateAnimating=false;
- const clamp=x=>Math.max(0,Math.min(1,x));const ease=x=>{x=clamp(x);return x*x*(3-2*x);};
- const LOGO_MIN=120,LOGO_MAX=420,CONTENT_MIN=720,MOBILE_FLOOR=480,CAMERA_RATIO=1250/2048;
- const targetFromHash=()=>location.hash==='#photography'?1:location.hash==='#work'?-1:0;
- function syncHash(next){const hash=next===1?'#photography':next===-1?'#work':'';history.replaceState(null,'',location.pathname+location.search+hash);}
- function openInitialCanvas(){
-  home.scrollTo({top:0,behavior:'instant'});photos.scrollTo({top:0,behavior:'instant'});work.scrollTo({top:0,behavior:'instant'});
-  const initialTarget=targetFromHash();if(initialTarget!==0)go(initialTarget);
+
+ // State.
+ let upper,lower,ready=false,frame=0,logoFrame=0,returnScroll=0,expansion=1,logoStateAnimating=false,scrollingBack=false;
+ let currentId='home';                 // the canvas we rest on / are heading to
+ let fromId='home';                    // the canvas we are panning away from
+ let panEased=1;                       // eased 0..1 progress of the current pan (1 = at rest)
+ let activeLogoDock=0;                 // 0..1 — how far the current logo has docked into the nav (scroll)
+ let pos=CANVASES.home.index;          // continuous ring position the screen is centred on
+
+ const clamp=x=>Math.max(0,Math.min(1,x));
+ const ease=x=>{x=clamp(x);return x*x*(3-2*x);};
+ // Signed shortest distance from `pos` to ring index i, in (-N/2, N/2].
+ const ringRel=i=>{let d=((i-pos)%N+N)%N;if(d>N/2)d-=N;return d;};
+ const atRest=()=>Math.abs(ringRel(CANVASES[currentId].index))<1e-6;
+
+ const targetFromHash=()=>{const c=ALL.find(c=>c.hash&&c.hash===location.hash);return c?c.id:'home';};
+ function syncHash(id){
+  history.replaceState(null,'',location.pathname+location.search+CANVASES[id].hash);
  }
- function load(src){return new Promise((resolve,reject)=>{const img=new Image();img.onload=()=>resolve(img);img.onerror=reject;img.src=src;});}
- function panel(img,d,p){ctx.save();ctx.scale(346/400,284/400);const pivot=d<0?[380,16]:[20,384];ctx.translate(pivot[0]-d*63*p,pivot[1]+d*385*p);ctx.rotate(p*.065);ctx.translate(-pivot[0],-pivot[1]);ctx.drawImage(img,0,0);ctx.restore();}
+ function openInitialCanvas(){
+  ALL.forEach(c=>c.el.scrollTo({top:0,behavior:'instant'}));
+  const initial=targetFromHash();
+  if(initial!=='home')go(initial);
+ }
+ function load(src){
+  return new Promise((resolve,reject)=>{
+   const img=new Image();
+   img.onload=()=>resolve(img);
+   img.onerror=reject;
+   img.src=src;
+  });
+ }
 
+ // Runs a rAF tween. onFrame(t) gets t in 0..1 each frame; onDone fires once at
+ // the end. setFrame stores the rAF id so callers can cancel. Callers handle
+ // prefers-reduced-motion themselves (their end states differ).
+ function runTween(duration,onFrame,onDone,setFrame){
+  const start=performance.now();
+  setFrame(requestAnimationFrame(function tick(now){
+   const t=clamp((now-start)/Math.max(1,duration));
+   onFrame(t);
+   if(t<1)setFrame(requestAnimationFrame(tick));
+   else if(onDone)onDone();
+  }));
+ }
 
- function placeCamera(p){
+ // Draws one lens-cover panel opening from its pivot. direction is -1 (upper)
+ // or +1 (lower); openAmount is 0 (closed) .. 1 (fully open).
+ function panel(img,direction,openAmount){
+  ctx.save();
+  ctx.scale(346/400,284/400);
+  const pivot=direction<0?[380,16]:[20,384];
+  ctx.translate(pivot[0]-direction*63*openAmount,pivot[1]+direction*385*openAmount);
+  ctx.rotate(openAmount*.065);
+  ctx.translate(-pivot[0],-pivot[1]);
+  ctx.drawImage(img,0,0);
+  ctx.restore();
+ }
+
+ // Positions one canvas's marker (and its dock title) from its ring position.
+ function placeMarker(c,m){
+  const rel=ringRel(c.index);
+  const centerX=m.vw/2+rel*m.travelX;
+  const centeredness=clamp(1-Math.abs(rel));
+  const S=m.scroll;                                    // the current canvas's scroll
+  // Size: the centred logo runs compact→full by `expansion` (tap to collapse);
+  // neighbours are shrunk, and grow back as the centre collapses (nav view).
+  const heroW=m.compactWidth+(m.fullWidth-m.compactWidth)*expansion;
+  const neighborW=m.fullWidth*(PEEK_SCALE+(1-PEEK_SCALE)*(1-expansion));
+  const baseW=neighborW+(heroW-neighborW)*centeredness;
+  const baseH=baseW*CAMERA_RATIO;
+  const active=c.id===currentId;
+  let w=baseW,h=baseH,left=centerX-baseW/2,top=m.centerY-baseH/2,vis=Math.min(1,Math.max(0,2-Math.abs(rel)));
+  if(active){
+   // Scroll SHRINKS the current logo up into the sticky nav (it stays visible —
+   // it does not fade). A SCROLL_BUFFER lets the logo hold at full size for the
+   // first bit of scroll (so entering the detail view registers) before docking.
+   // S is 0 while panning, so this only engages on scroll.
+   const Sd=Math.max(0,S-SCROLL_BUFFER);
+   const baseBottom=m.centerY+baseH/2;
+   const dockDistance=Math.max(1,baseBottom+GAP-m.navHeight);
+   const dockProgress=ease(Sd/dockDistance);
+   activeLogoDock=dockProgress;
+   const dockScroll=Math.min(Sd,dockDistance);
+   w=baseW+(m.logoWidth-baseW)*dockProgress;
+   h=baseH+(m.logoHeight-baseH)*dockProgress;
+   left=centerX-w/2;
+   top=baseBottom-dockScroll-h+m.cameraDockInset*(dockScroll/dockDistance);
+  }
+  // Neighbours stay put — scrolling the current canvas doesn't move or fade them.
+
+  if(c.kind==='camera'){
+   c.marker.style.left='0px';
+   c.marker.style.top='0px';
+   c.marker.style.width=m.fullWidth+'px';
+   c.marker.style.height=m.fullHeight+'px';
+   c.marker.style.transform='translate('+left+'px,'+top+'px) scale('+(w/m.fullWidth)+')';
+  }else{
+   c.marker.style.left=left+'px';
+   c.marker.style.top=top+'px';
+   c.marker.style.width=w+'px';
+   c.marker.style.height=h+'px';
+   c.marker.style.fontSize=Math.max(LOGO_FONT_MIN,Math.min(LOGO_FONT_MAX,w*LOGO_FONT_FACTOR))+'px';
+  }
+  c.marker.style.visibility='visible';
+  c.marker.style.opacity=String(vis);
+  c.marker.style.pointerEvents=vis>.05?'auto':'none';
+  c.marker.tabIndex=vis>.05?0:-1;
+
+  // Title. Every title is a slot on a strip that pans (translateX by `rel`) so
+  // it slides in sync with the logos. The CURRENT canvas's title (rel≈0) also
+  // sits under its logo and animates up into the dock as navDock→1; the two
+  // NEIGHBOURS' titles only show in the dock, fading in with navDock. At
+  // navDock=1 the two cases coincide, so panning is seamless.
+  if(c.entry){
+   const dockShift=rel*m.dockTravel;
+   c.entry.style.left='0px';c.entry.style.right='auto';c.entry.style.width=m.vw+'px';c.entry.style.textAlign='center';c.entry.style.textIndent='0';
+   if(Math.abs(rel)<.5){
+    c.entry.style.top=(m.y0-(m.y0-m.dockY)*m.navDock)+'px';
+    c.entry.style.fontSize=(m.bigFs-(m.bigFs-DOCK_FS)*m.navDock)+'px';
+    c.entry.style.transform='translateX('+(dockShift*m.navDock)+'px)';   // slides only once docked
+    c.entry.style.opacity='1';
+    c.entry.style.pointerEvents='auto';   // current title always tappable (collapse/expand/top)
+   }else if(Math.abs(rel)<1.5){
+    c.entry.style.top=m.dockY+'px';
+    c.entry.style.fontSize=DOCK_FS+'px';
+    c.entry.style.transform='translateX('+dockShift+'px)';
+    c.entry.style.opacity=String(m.navDock);
+    c.entry.style.pointerEvents=m.navDock>.5?'auto':'none';
+   }else{
+    c.entry.style.opacity='0';
+    c.entry.style.pointerEvents='none';
+   }
+  }
+ }
+
+ function placeView(){
+  // ---- Metrics: derive every size from the current viewport -----------------
   const vw=viewport.clientWidth;
   const vh=viewport.clientHeight;
   const heightLimitedMax=Math.min(LOGO_MAX,Math.max(LOGO_MIN,(vh-130)/CAMERA_RATIO));
@@ -32,8 +235,6 @@
   const safeContentWidth=vw*.6;
   const mobileRange=Math.max(1,CONTENT_MIN-MOBILE_FLOOR*.6);
   const mobileProgress=clamp((CONTENT_MIN-safeContentWidth)/mobileRange);
-  // Reach the compact state sooner through tablet and narrow-laptop widths.
-  // The narrow-phone endpoint remains exactly half width and half height.
   const compactProgress=ease(clamp(mobileProgress*1.35));
   const compactScale=1-.5*compactProgress;
   const compactWidth=fullWidth*compactScale;
@@ -41,8 +242,6 @@
   const desktopGutter=vw*.2;
   const mobileGutter=Math.max(20,Math.min(32,vw*.055));
   const interpolatedGutter=desktopGutter+(mobileGutter-desktopGutter)*ease(mobileProgress);
-  // Keep a full ten-percent lane between each visible half-logo and content.
-  // This also absorbs the scroll bar without allowing text to touch a logo.
   const edgeLogoGuard=compactWidth/2+vw*.1+6;
   const contentGutter=Math.max(interpolatedGutter,edgeLogoGuard);
   const contentWidth=Math.max(0,vw-contentGutter*2);
@@ -50,18 +249,35 @@
   const centerY=startY+fullHeight/2;
   const logoWidth=Math.min(72,fullWidth);
   const logoHeight=logoWidth*CAMERA_RATIO;
-  const navigationHeight=photos.querySelector('header').offsetHeight;
-  const cameraDockInset=(navigationHeight-logoHeight)/2;
-  const dockDistance=Math.max(1,startY+fullHeight+32-navigationHeight);
-  const photoDockProgress=p===1?ease(photos.scrollTop/dockDistance):0;
-  const dockScroll=Math.min(photos.scrollTop,dockDistance);
-  const travel=vw/2;
+  const navHeight=photosHeader.offsetHeight;
+  const cameraDockInset=(navHeight-logoHeight)/2;
+  const travelX=vw/2;
+  const resting=atRest();
+  const onHome=currentId==='home'&&resting;
+  const scroll=resting?CANVASES[currentId].el.scrollTop:0;   // active canvas scroll (0 while panning)
+  // navDock: 0 = current title sits under its logo (detail view, at top); 1 =
+  // title docked in the nav bar. Raised by scrolling into content, and by
+  // COLLAPSING — the title reaches the dock exactly as the logo finishes
+  // shrinking (in sync, COLLAPSE_DOCK_FRAC=1). In the bird-eye view (expansion 0)
+  // it's pinned at 1, so the nav bar / dock is ALWAYS visible there.
+  const heroW=compactWidth+(fullWidth-compactWidth)*expansion;   // current logo width (shrinks on collapse)
+  const heroH=heroW*CAMERA_RATIO;
+  const titleGap=Math.max(10,heroH*.05);
+  const y0=centerY+heroH/2+titleGap;                    // title's resting Y under the (current) logo
+  const dockY=navHeight+DOCK_H/2-DOCK_FS*.7;            // title's Y once in the dock
+  const bigFs=Math.max(TITLE_BIG_MIN,Math.min(TITLE_BIG_MAX,heroW*TITLE_BIG_FACTOR));  // shrinks with the logo
+  const scrollDock=clamp((scroll-SCROLL_BUFFER)/Math.max(1,y0-dockY));  // scroll raises the title into the dock (after the buffer)
+  const collapseDock=clamp((1-expansion)/COLLAPSE_DOCK_FRAC);   // title docks early in the collapse
+  const navDock=Math.max(scrollDock,collapseDock);
+  const dockTravel=vw*.44;                              // spacing of the three dock titles / their pan distance (hug the edges)
+  const m={vw,vh,travelX,fullWidth,fullHeight,compactWidth,compactHeight,centerY,logoWidth,logoHeight,navHeight,cameraDockInset,scroll,y0,dockY,bigFs,navDock,dockTravel};
 
-  const homeContentVisible=mobileProgress===0||homeExpansion>=.999;
+  // ---- Root state flags and shared CSS variables ----------------------------
+  const homeContentVisible=mobileProgress===0||expansion>=.999;
   root.classList.toggle('is-mobile-canvas',mobileProgress>0);
   root.classList.toggle('is-narrow-content',contentWidth<560);
-  root.classList.toggle('is-home-canvas',Math.abs(p)<.001);
-  root.classList.toggle('is-home-expanded',homeExpansion>.001);
+  root.classList.toggle('is-home-canvas',Math.abs(ringRel(CANVASES.home.index))<.001);
+  root.classList.toggle('is-home-expanded',expansion>.001);
   root.classList.toggle('is-home-content-visible',homeContentVisible);
   homeContent.inert=!homeContentVisible;
   homeContent.setAttribute('aria-hidden',String(!homeContentVisible));
@@ -70,220 +286,342 @@
   root.style.setProperty('--mobile-progress',String(mobileProgress));
   track.style.width='200%';
   track.style.setProperty('--view-width',vw+'px');
-  track.style.setProperty('--travel',travel+'px');
-  const workProgress=clamp(-p);
-  const pan=p>=0?ease(p):-ease(-p);
-  const canvasOffset=-travel*(1-pan);
-  const workCenter=vw/2+2*travel;
-  track.style.transform='translateX('+canvasOffset+'px)';
+  track.style.transform='none';
 
-  // Home is compact by default only when space is constrained. Expanding it
-  // grows from its center while the two edge logos shrink from theirs.
-  const activeHomeWidth=compactWidth+(fullWidth-compactWidth)*homeExpansion;
-  const activeHomeHeight=compactHeight+(fullHeight-compactHeight)*homeExpansion;
-  const homeBaseWidth=p===0?activeHomeWidth:compactWidth;
-  const homeBaseHeight=p===0?activeHomeHeight:compactHeight;
-  const homeBaseBottom=centerY+homeBaseHeight/2;
-  const homeDockDistance=Math.max(1,homeBaseBottom+32-navigationHeight);
-  const homeLogoDockProgress=p===0?ease(home.scrollTop/homeDockDistance):0;
-  const renderedHomeLogoWidth=homeBaseWidth+(logoWidth-homeBaseWidth)*homeLogoDockProgress;
-  const renderedHomeLogoHeight=homeBaseHeight+(logoHeight-homeBaseHeight)*homeLogoDockProgress;
-  const homeLogoCenter=canvasOffset+travel+vw/2;
-  const homeDockScroll=Math.min(home.scrollTop,homeDockDistance);
-  homeLogo.style.left=(homeLogoCenter-renderedHomeLogoWidth/2)+'px';
-  homeLogo.style.top=(p===0
-   ? homeBaseBottom-homeDockScroll-renderedHomeLogoHeight+cameraDockInset*(homeDockScroll/homeDockDistance)
-   : centerY-homeBaseHeight/2)+'px';
-  homeLogo.style.width=renderedHomeLogoWidth+'px';
-  homeLogo.style.height=renderedHomeLogoHeight+'px';
-  homeLogo.style.fontSize=Math.max(16,Math.min(48,renderedHomeLogoWidth*.115))+'px';
-  homeLogo.setAttribute('aria-pressed',String(p===0&&homeExpansion>.5));
-  homeLogo.setAttribute('aria-label',p===0
-   ? mobileProgress>0?(homeExpansion>.5?'Use compact Home navigation':'Expand Home Canvas'):'Home Canvas'
+  // ---- Position each section along the ring via transform (compositor-only,
+  // so panning stays smooth — no per-frame layout of full-viewport sections).
+  ALL.forEach(c=>{
+   c.el.style.left='0px';
+   c.el.style.top='0px';
+   c.el.style.transform='translate3d('+(ringRel(c.index)*travelX)+'px,0,0)';
+  });
+
+  // ---- Markers: the centre is the active page, its two neighbours peek ------
+  activeLogoDock=0;
+  ALL.forEach(c=>placeMarker(c,m));
+  homeLogo.setAttribute('aria-pressed',String(onHome&&expansion>EXPANDED));
+  homeLogo.setAttribute('aria-label',onHome
+   ? (mobileProgress>0?(expansion>EXPANDED?'Use compact Home navigation':'Expand Home Canvas'):'Home Canvas')
    : 'Return to Home Canvas');
 
-  const edgeWidth=fullWidth+(compactWidth-fullWidth)*homeExpansion;
-  const edgeHeight=fullHeight+(compactHeight-fullHeight)*homeExpansion;
-  const workBaseWidth=p===0?edgeWidth:fullWidth;
-  const workBaseHeight=p===0?edgeHeight:fullHeight;
-  const workBaseBottom=centerY+workBaseHeight/2;
-  const workDockDistance=Math.max(1,workBaseBottom+32-navigationHeight);
-  const workLogoDockProgress=p===-1?ease(work.scrollTop/workDockDistance):0;
-  const renderedWorkLogoWidth=workBaseWidth+(logoWidth-workBaseWidth)*workLogoDockProgress;
-  const renderedWorkLogoHeight=workBaseHeight+(logoHeight-workBaseHeight)*workLogoDockProgress;
-  const workDockScroll=Math.min(work.scrollTop,workDockDistance);
-  workLogo.style.left=(canvasOffset+workCenter-renderedWorkLogoWidth/2)+'px';
-  workLogo.style.top=(p===-1
-   ? workBaseBottom-workDockScroll-renderedWorkLogoHeight+cameraDockInset*(workDockScroll/workDockDistance)
-   : centerY-workBaseHeight/2)+'px';
-  workLogo.style.width=renderedWorkLogoWidth+'px';
-  workLogo.style.height=renderedWorkLogoHeight+'px';
-  workLogo.style.fontSize=Math.max(16,Math.min(48,renderedWorkLogoWidth*.115))+'px';
-  workLogo.style.visibility='visible';
-  workLogo.style.opacity='1';
-  workLogo.style.pointerEvents='auto';
-  workLogo.tabIndex=0;
+  // ---- Content top padding: leave room for the logo + the under-logo title --
+  const contentTop=startY+fullHeight+bigFs*1.4+GAP;
+  homeContent.style.paddingTop=contentTop+'px';
+  gallery.style.paddingTop=contentTop+'px';
+  workContent.style.paddingTop=contentTop+'px';
+  notesContent.style.paddingTop=contentTop+'px';
+  // During the buffer the content holds too (offset down to cancel the scroll);
+  // the extra bottom padding keeps the end reachable past the offset.
+  const bufferHold=Math.min(scroll,SCROLL_BUFFER);
+  homeContent.style.paddingBottom=gallery.style.paddingBottom=workContent.style.paddingBottom=notesContent.style.paddingBottom=SCROLL_BUFFER+'px';
 
-  const visibleEdgeWidth=Math.max(44,edgeWidth/2);
-  const edgeLabelSize=Math.max(13,Math.min(30,edgeWidth*.075));
-  const edgeLabelShift=Math.max(0,visibleEdgeWidth*.18-4);
-  root.style.setProperty('--edge-label-size',edgeLabelSize+'px');
-  entry.style.left='0px';entry.style.right='auto';entry.style.width=visibleEdgeWidth+'px';entry.style.top=(centerY+edgeHeight/2+12)+'px';
-  workEntry.style.left='auto';workEntry.style.right='0px';workEntry.style.width=visibleEdgeWidth+'px';workEntry.style.top=(centerY+edgeHeight/2+12)+'px';
-  entry.style.textIndent=(-edgeLabelShift)+'px';
-  workEntry.style.textIndent=edgeLabelShift+'px';
-  homeContent.style.paddingTop=(startY+fullHeight+72)+'px';
-  workContent.style.paddingTop=(startY+fullHeight+32-navigationHeight)+'px';
+  // ---- The dock bar shows with navDock (hidden when the title is under the logo).
+  canvasDock.style.opacity=String(navDock);
 
-  // The camera uses the same centered scaling as the other logos. On the
-  // Photography canvas its bottom continues to track scrolling one-for-one.
-  const photographyMode=p===1;
-  const cameraBaseWidth=p===0?edgeWidth:fullWidth;
-  const cameraBaseHeight=p===0?edgeHeight:fullHeight;
-  const renderedCameraWidth=photographyMode?fullWidth+(logoWidth-fullWidth)*photoDockProgress:cameraBaseWidth;
-  const renderedCameraHeight=renderedCameraWidth*CAMERA_RATIO;
-  const cameraBottom=startY+fullHeight-dockScroll;
-  const yInset=cameraDockInset*(dockScroll/dockDistance);
-  const cameraX=canvasOffset+vw/2-renderedCameraWidth/2;
-  const cameraY=photographyMode?cameraBottom-renderedCameraHeight+yInset:centerY-cameraBaseHeight/2;
-  camera.style.left='0px';camera.style.top='0px';
-  camera.style.width=fullWidth+'px';camera.style.height=fullHeight+'px';
-  camera.style.transform='translate('+cameraX+'px,'+cameraY+'px) scale('+(renderedCameraWidth/fullWidth)+')';
-  camera.style.opacity='1';
-  camera.style.pointerEvents='auto';
-  camera.tabIndex=0;
-  root.querySelector('.gallery').style.paddingTop=(startY+fullHeight+32)+'px';
-  // Let the active canvas logo take over the center of the sticky bar as its
-  // page title fades out. The title returns when scrolling up.
-  const navDockProgress=p===1?photoDockProgress:p===0?homeLogoDockProgress:p===-1?workLogoDockProgress:0;
-  canvasNavTitle.style.opacity=String(1-navDockProgress);
-  const galleryTitle=root.querySelector('.gallery h1');
-  const titleFadeDistance=96;
-  const galleryTitleFadeStart=Math.max(0,dockDistance-titleFadeDistance);
-  const galleryTitleProgress=p===1?ease((photos.scrollTop-galleryTitleFadeStart)/titleFadeDistance):0;
-  galleryTitle.style.opacity=String(1-galleryTitleProgress);
-  home.style.opacity=String(1-ease(Math.abs(p)/.65));
-  home.style.pointerEvents=p===0?'auto':'none';
-  home.style.overflowY=p===0&&homeContentVisible?'auto':'hidden';
-  entry.style.pointerEvents=p===0?'auto':'none';
-  workEntry.style.pointerEvents=p===0?'auto':'none';
-  entry.style.opacity=p===0?'1':'0';
-  workEntry.style.opacity=p===0?'1':'0';
-  photos.style.pointerEvents=p===1?'auto':'none';
-  photos.style.overflowY=p===1?'auto':'hidden';
-  work.style.opacity=String(ease((workProgress-.65)/.35));
-  work.style.pointerEvents=p===-1?'auto':'none';
-  work.style.overflowY=p===-1?'auto':'hidden';
-  root.querySelector('.photos header').style.opacity=String(ease((p-.35)/.65));
-  root.querySelector('.gallery').style.opacity=String(ease(p));
+  // ---- Watermark: the current page's name, big and faded, fills the empty page
+  // body while the logo is collapsed (shrunk). Hidden when expanded or panning.
+  canvasWatermark.textContent=CANVASES[currentId].title;
+  canvasWatermark.style.opacity=String(resting?clamp(1-expansion):0);
+
+  // ---- Orbit-ring indicator: N coloured dots ride a tilted ring (a flat
+  // ellipse in perspective) that spins with `pos`. The current canvas's dot sits
+  // at the front (nearest, biggest, brightest); the others recede to the back
+  // (smaller, fainter). Panning turns the ring 360°/N per canvas, so it loops.
+  const ringRx=72,ringRy=13,step=2*Math.PI/N;           // dots are placed as offsets from the ring's centre
+  for(let k=0;k<canvasDotItems.length;k++){
+   const a=(k-pos)*step;                                // 0 = at the front
+   const depth=(Math.cos(a)+1)/2;                       // 0 = back, 1 = front
+   const dx=ringRx*Math.sin(a);
+   const dy=ringRy*Math.cos(a);
+   const sc=.55+depth*.85;                              // perspective size (front bigger)
+   const dot=canvasDotItems[k];
+   dot.style.transform='translate('+dx+'px,'+dy+'px) scale('+sc+')';
+   dot.style.opacity=String(.3+depth*.7);
+   dot.style.zIndex=String(Math.round(depth*20));
+  }
+  canvasDots.style.opacity=String(1-activeLogoDock);   // whole ring fades as the logo docks in
+
+  // ---- Per-canvas content visibility, scrolling and pointer events ----------
+  ALL.forEach(c=>{
+   const active=c.id===currentId&&resting;
+   // Content shows only on the active, expanded canvas — so it's hidden during
+   // pans (the "collapse then animate" that keeps the pan light) and on collapse.
+   c.el.style.opacity=String(active?expansion:0);
+   const usable=active&&expansion>.5;
+   c.el.style.pointerEvents=usable?'auto':'none';
+   // Content scrolls only in the FULL detail view; while collapsing/expanding it's
+   // locked so the scroll-paced transition owns the wheel/touch.
+   c.el.style.overflowY=(active&&expansion>=.999)?'auto':'hidden';
+   c.content.style.transform=active?'translateY('+bufferHold+'px)':'none';   // hold across the buffer
+  });
   brand.style.opacity='1';
+
+  // ---- Camera lens cover: redraw every frame so it tracks the camera's size.
+  // The lens opens only when the camera is the big centred hero; it closes
+  // (covers) as the camera shrinks — collapsed (expansion→0) or docked into the
+  // nav on scroll (activeLogoDock→1 while Photos is current).
+  if(ctx){
+   // Lens is open ONLY while resting on Photos in the detail view (tracks
+   // `expansion`). It stays open when the logo docks on scroll, and stays closed
+   // in the bird-eye view and during any pan (so it never flashes open mid-pan).
+   const cameraOpen=(currentId==='photos'&&resting)?expansion:0;
+   const lens=ease(clamp(1-Math.abs(ringRel(CANVASES.photos.index)))/PAN_SPLIT)*cameraOpen;
+   ctx.clearRect(0,0,346,284);
+   ctx.save();
+   ctx.clip(aperture);
+   if(lens<1&&upper&&lower){panel(upper,-1,lens);panel(lower,1,lens);}
+   ctx.restore();
+  }
  }
- function draw(p){
+
+ function draw(){
   if(!ready)return;
-  const lens=ease(p/.65);
-  placeCamera(p);
-  ctx.clearRect(0,0,346,284);ctx.save();ctx.clip(aperture);
-  if(lens<1 && upper && lower){panel(upper,-1,lens);panel(lower,1,lens);}ctx.restore();
+  placeView();
  }
+
  function finish(){
-  syncHash(target);
-  canvasNavTitle.textContent=target===1?'Photography':target===-1?'Work':'Home';
-  home.inert=target!==0;photos.inert=target!==1;work.inert=target!==-1;
-  status.textContent=target===1?'Camera Canvas. Scroll to explore Photography.':target===-1?'Work Canvas':'Home Canvas';
-  camera.setAttribute('aria-label',target===1?'Return to Home Canvas':'Open Camera Canvas');
-  workLogo.setAttribute('aria-label',target===-1?'Return to Home Canvas':'Open Work Canvas');
-  (canvasNavMenu||(target===1?back:target===-1?workBack:homeLogo)).focus({preventScroll:true});
+  pos=CANVASES[currentId].index;       // land exactly on the ring slot
+  fromId=currentId;                    // at rest: only the current canvas is shown
+  panEased=1;
+  syncHash(currentId);
+  ALL.forEach(c=>{c.el.inert=c.id!==currentId;});
+  status.textContent=CANVASES[currentId].ready;
+  SPOKES.forEach(c=>c.marker.setAttribute('aria-label',currentId===c.id?c.returnLabel:c.openLabel));
+  // The menu button is always present on this page; the rest is a fallback.
+  (canvasNavMenu||CANVASES[currentId].back||homeLogo).focus({preventScroll:true});
  }
- function go(next){
+
+ function go(toId){
   if(!ready)return;
-  homeExpansion=0;
-  target=next;cancelAnimationFrame(frame);home.inert=true;photos.inert=true;work.inert=true;
-  photos.style.overflowY='hidden';
-  work.style.overflowY='hidden';
-  const from=progress,start=performance.now(),duration=1100*Math.abs(target-from);
-  returnScroll=photos.scrollTop;
-  if(reduced.matches){progress=target;if(!target){photos.scrollTop=0;work.scrollTop=0;}draw(progress);finish();return;}
-  status.textContent=target===1?'Opening Camera Canvas':target===-1?'Opening Work Canvas':'Returning to Home Canvas';
-  function tick(now){
-   const t=clamp((now-start)/Math.max(1,duration));
-   if(!target)photos.scrollTop=returnScroll*(1-ease(t));
-   progress=from+(target-from)*t;draw(progress);
-   if(t<1)frame=requestAnimationFrame(tick);else finish();
-  }frame=requestAnimationFrame(tick);
+  fromId=currentId;
+  CANVASES[toId].el.scrollTo({top:0,behavior:'instant'});   // the destination starts at the top
+  const fromPos=pos;
+  currentId=toId;
+  // Travel the SHORTEST way around the ring (so Notes → Photography wraps).
+  let d=((CANVASES[toId].index-pos)%N+N)%N;
+  if(d>N/2)d-=N;
+  const toPos=pos+d;
+  cancelAnimationFrame(frame);
+  ALL.forEach(c=>{c.el.inert=true;c.el.style.overflowY='hidden';});
+  const fromScroll=CANVASES[fromId].el.scrollTop;
+  returnScroll=fromScroll;
+  if(reduced.matches){
+   pos=CANVASES[toId].index;
+   CANVASES[fromId].el.scrollTop=0;
+   panEased=1;
+   draw();
+   finish();
+   return;
+  }
+  panEased=0;
+  status.textContent=CANVASES[toId].opening;
+  runTween(GO_MS_PER_UNIT*(Math.abs(d)||1),t=>{
+   const e=ease(t);
+   panEased=e;
+   pos=fromPos+(toPos-fromPos)*e;
+   CANVASES[fromId].el.scrollTop=fromScroll*(1-e);
+   draw();
+  },finish,id=>{frame=id;});
  }
- function animateHomeState(next,onComplete){
+
+ // Collapses / expands the centred canvas's logo (0 = compact, 1 = full).
+ function animateExpansion(next,onComplete){
   if(logoStateAnimating)return;
-  if(reduced.matches){homeExpansion=next;placeCamera(progress);if(onComplete)onComplete();return;}
+  if(reduced.matches){
+   expansion=next;
+   if(!next)CANVASES[currentId].el.scrollTop=0;
+   placeView();
+   if(onComplete)onComplete();
+   return;
+  }
   logoStateAnimating=true;
   cancelAnimationFrame(logoFrame);
-  const from=homeExpansion,start=performance.now(),duration=320*Math.abs(next-from);
-  status.textContent=next?'Expanding Home Canvas':'Resetting canvas navigation';
-  function tick(now){
-   const t=clamp((now-start)/Math.max(1,duration));
-   homeExpansion=from+(next-from)*ease(t);
-   placeCamera(progress);
-   if(t<1)logoFrame=requestAnimationFrame(tick);
-   else {homeExpansion=next;logoStateAnimating=false;status.textContent='Home Canvas';if(onComplete)onComplete();}
-  }
-  logoFrame=requestAnimationFrame(tick);
+  const from=expansion;
+  status.textContent=next?'Expanding canvas':'Collapsing canvas';
+  runTween(HOME_STATE_MS_PER_UNIT*Math.abs(next-from),t=>{
+   expansion=from+(next-from)*ease(t);
+   placeView();
+  },()=>{
+   expansion=next;
+   if(!next)CANVASES[currentId].el.scrollTop=0;
+   logoStateAnimating=false;
+   status.textContent=CANVASES[currentId].ready;
+   if(onComplete)onComplete();
+  },id=>{logoFrame=id;});
  }
- let scrollingBack=false;
+
  function scrollCurrentToTop(onComplete){
   if(!ready||scrollingBack||logoStateAnimating)return;
-  const active=target===0?home:target===-1?work:photos;
-  if(reduced.matches||active.scrollTop<=0){active.scrollTo({top:0,behavior:'instant'});onComplete();return;}
+  const active=CANVASES[currentId].el;
+  if(reduced.matches||active.scrollTop<=0){
+   active.scrollTo({top:0,behavior:'instant'});
+   onComplete();
+   return;
+  }
   scrollingBack=true;
   cancelAnimationFrame(frame);
-  const from=active.scrollTop,start=performance.now();
-  const duration=Math.min(1200,Math.max(500,from*.65));
+  const from=active.scrollTop;
+  const duration=Math.min(SCROLL_TOP_MAX,Math.max(SCROLL_TOP_MIN,from*SCROLL_TOP_FACTOR));
   status.textContent='Returning to the top of the current canvas';
-  function tick(now){
-   const t=clamp((now-start)/duration);
-   active.scrollTop=from*(1-ease(t));placeCamera(progress);
-   if(t<1)frame=requestAnimationFrame(tick);
-   else {active.scrollTo({top:0,behavior:'instant'});scrollingBack=false;onComplete();}
-  }
-  frame=requestAnimationFrame(tick);
+  runTween(duration,t=>{
+   active.scrollTop=from*(1-ease(t));
+   placeView();
+  },()=>{
+   active.scrollTo({top:0,behavior:'instant'});
+   scrollingBack=false;
+   onComplete();
+  },id=>{frame=id;});
  }
- function navigateTo(next){
-  if(!ready||scrollingBack||logoStateAnimating)return;
-  const destination=next===0?home:next===-1?work:photos;
-  scrollCurrentToTop(()=>{destination.scrollTo({top:0,behavior:'instant'});go(next);});
- }
+
+ // Navigation from a resting canvas: to the top, collapse the current canvas,
+ // then pan to the target (which arrives collapsed and expands — see finish()).
  function navigateFromDefault(next){
   if(!ready||scrollingBack||logoStateAnimating)return;
-  const active=target===0?home:target===-1?work:photos;
-  if(active.scrollTop>0){scrollCurrentToTop(()=>navigateFromDefault(next));return;}
-  if(homeExpansion>.001){animateHomeState(0,()=>navigateTo(next));return;}
-  navigateTo(next);
+  const active=CANVASES[currentId].el;
+  if(active.scrollTop>0){scrollCurrentToTop(()=>navigateFromDefault(next));return;}  // 1) to the top
+  if(expansion>.001){animateExpansion(0,()=>go(next));return;}                       // 2) collapse, then
+  go(next);                                                                          // 3) pan
  }
- function returnHome(){navigateFromDefault(0);}
- camera.addEventListener('click',()=>{
+ function returnHome(){navigateFromDefault('home');}
+
+ // ---- Wiring ----------------------------------------------------------------
+ // Tapping the CENTRED canvas's own logo collapses/expands it (like Home) — it
+ // does not navigate. Tapping a NEIGHBOUR's peeking logo/label pans to it.
+ // Back button / Escape return Home.
+ // Expand into the detail view, landing at the END of the scroll buffer so a
+ // click skips the "hold" (which is meant for scroll entry) and is ready to scroll.
+ function enterDetail(){                 // expand, then sit at the END of the buffer (skip the hold)
+  animateExpansion(1,()=>{CANVASES[currentId].el.scrollTop=SCROLL_BUFFER;});
+ }
+ function collapseHere(){               // collapse to the bird-eye view, at the true top
+  CANVASES[currentId].el.scrollTop=0;
+  animateExpansion(0);
+ }
+ function markerClick(c){
   if(scrollingBack||logoStateAnimating)return;
-  if(target===1)navigateFromDefault(0);else navigateFromDefault(1);
+  if(Math.abs(ringRel(c.index))<.5){
+   if(CANVASES[c.id].el.scrollTop>SCROLL_BUFFER){scrollCurrentToTop(()=>{});return;}  // scrolled into content → top first
+   if(expansion>EXPANDED)collapseHere();else enterDetail();               // else collapse / expand
+  }else{
+   navigateFromDefault(c.id);
+  }
+ }
+ ALL.forEach(c=>{
+  c.marker.addEventListener('click',()=>markerClick(c));
+  if(c.entry)c.entry.addEventListener('click',()=>markerClick(c));   // title/logo behave alike
+  if(c.back)c.back.addEventListener('click',returnHome);
  });
- entry.addEventListener('click',()=>navigateFromDefault(1));back.addEventListener('click',returnHome);
-  homeLogo.addEventListener('click',()=>{
-   if(scrollingBack||logoStateAnimating)return;
-   if(target!==0){returnHome();return;}
-   if(home.scrollTop>0){navigateFromDefault(0);return;}
-   if(!root.classList.contains('is-mobile-canvas'))return;
-   animateHomeState(homeExpansion>.5?0:1);
-  });
- workLogo.addEventListener('click',()=>{if(scrollingBack||logoStateAnimating)return;if(target===-1)navigateFromDefault(0);else navigateFromDefault(-1);});
- workEntry.addEventListener('click',()=>navigateFromDefault(-1));workBack.addEventListener('click',returnHome);
+ // Tapping the orbit ring collapses the current page (raising the dock / nav
+ // view); if the page is scrolled it returns to the top first. Tap again to expand.
+ canvasDots.addEventListener('click',()=>{
+  if(!ready||logoStateAnimating||scrollingBack)return;
+  if(CANVASES[currentId].el.scrollTop>SCROLL_BUFFER){scrollCurrentToTop(()=>{});return;}
+  if(expansion>EXPANDED)collapseHere();else enterDetail();
+ });
  root.addEventListener('keydown',e=>{if(e.key==='Escape')returnHome();});
-  window.addEventListener('hashchange',()=>{if(ready){const next=targetFromHash();if(next!==target){homeExpansion=0;go(next);}}});
-  home.addEventListener('scroll',()=>{if(ready)placeCamera(progress);},{passive:true});
-  photos.addEventListener('scroll',()=>{if(ready)placeCamera(progress);},{passive:true});
-  work.addEventListener('scroll',()=>{if(ready)placeCamera(progress);},{passive:true});
- const observer=new ResizeObserver(()=>{if(ready)placeCamera(progress);});observer.observe(viewport);
- Promise.all([load(upperSrc),load(lowerSrc)]).then(images=>{[upper,lower]=images;ready=true;draw(0);camera.disabled=false;entry.disabled=false;workLogo.disabled=false;workEntry.disabled=false;status.textContent='Home Canvas';openInitialCanvas();}).catch(()=>{
-  // Keep Photography reachable even if a cover texture fails to download.
+ window.addEventListener('hashchange',()=>{
+  if(!ready)return;
+  const next=targetFromHash();
+  if(next!==currentId)go(next);
+ });
+
+ // Coalesce bursts of scroll/resize events into one placeView() per frame.
+ let placeScheduled=false;
+ function schedulePlace(){
+  if(!ready||placeScheduled)return;
+  placeScheduled=true;
+  requestAnimationFrame(()=>{placeScheduled=false;placeView();});
+ }
+ // Apply the buffer hold SYNCHRONOUSLY on scroll (same frame) so the content
+ // doesn't jitter a frame behind the native scroll; placeView keeps the rest in sync.
+ ALL.forEach(c=>c.el.addEventListener('scroll',()=>{
+  if(c.id===currentId&&atRest())c.content.style.transform='translateY('+Math.min(c.el.scrollTop,SCROLL_BUFFER)+'px)';
+  schedulePlace();
+ },{passive:true}));
+ new ResizeObserver(schedulePlace).observe(viewport);
+
+ // Markers overlay the scroll container but aren't inside it, so forward
+ // wheel/touch over a marker to whichever canvas is currently open.
+ function activeScroller(){
+  if(!(ready&&!scrollingBack&&!logoStateAnimating&&atRest()))return null;
+  const el=CANVASES[currentId].el;
+  return el.style.overflowY==='auto'?el:null;
+ }
+ function forwardScroll(el){
+  el.addEventListener('wheel',e=>{
+   const sc=activeScroller();
+   if(!sc||e.ctrlKey)return;
+   sc.scrollTop+=e.deltaMode===1?e.deltaY*16:e.deltaY;
+   e.preventDefault();
+  },{passive:false});
+  let touchY=null;
+  el.addEventListener('touchstart',e=>{touchY=e.touches[0].clientY;},{passive:true});
+  el.addEventListener('touchmove',e=>{
+   const sc=activeScroller();
+   if(!sc||touchY===null)return;
+   const y=e.touches[0].clientY;
+   sc.scrollTop+=touchY-y;
+   touchY=y;
+   e.preventDefault();
+  },{passive:false});
+ }
+ // Forward over the markers AND the titles, so the cursor sitting on either
+ // still scrolls the page.
+ ALL.forEach(c=>{forwardScroll(c.marker);if(c.entry)forwardScroll(c.entry);});
+
+ // Scroll PACES the collapse/expand transition between the detail view
+ // (expanded) and the bird-eye view (collapsed). Scrolling drives `expansion`
+ // directly (not a fixed tween): scroll up at the top of the detail view
+ // collapses; scroll down in the bird-eye view expands. The title reaches the
+ // dock faster than the logo finishes shrinking (see navDock in placeView). On
+ // idle / touch-end it snaps to the nearer end.
+ function applyTransitionScroll(d){      // d = px, + down (expand), − up (collapse)
+  if(!ready||scrollingBack||logoStateAnimating||!atRest())return false;
+  const el=CANVASES[currentId].el;
+  const atTop=el.scrollTop<=SCROLL_BUFFER;                  // the buffer zone counts as "top"
+  const inZone=(expansion>1e-4&&expansion<1-1e-4)          // already mid-transition
+    ||(expansion>=1-1e-4&&atTop&&d<0)                       // detail, at top, scrolling up
+    ||(expansion<=1e-4&&d>0);                               // bird-eye, scrolling down
+  if(!inZone)return false;
+  expansion=clamp(expansion+d/COLLAPSE_DIST);
+  if(expansion<=1e-4)el.scrollTop=0;                        // land the bird-eye view at the true top
+  placeView();
+  return true;
+ }
+ function snapExpansion(){
+  if(ready&&!logoStateAnimating&&!scrollingBack&&expansion>1e-4&&expansion<1-1e-4)animateExpansion(expansion>=.5?1:0);
+ }
+ let snapTimer=0;
+ viewport.addEventListener('wheel',e=>{
+  if(e.ctrlKey)return;
+  const d=e.deltaMode===1?e.deltaY*16:e.deltaY;
+  if(!d)return;
+  if(applyTransitionScroll(d)){e.preventDefault();clearTimeout(snapTimer);snapTimer=setTimeout(snapExpansion,140);}
+ },{passive:false});
+ let gestureY=null,gestureActive=false;
+ viewport.addEventListener('touchstart',e=>{gestureY=e.touches[0].clientY;gestureActive=false;},{passive:true});
+ viewport.addEventListener('touchmove',e=>{
+  if(gestureY===null)return;
+  const y=e.touches[0].clientY;
+  const d=gestureY-y;                    // +down, −up
+  gestureY=y;
+  if(applyTransitionScroll(d)){gestureActive=true;e.preventDefault();}
+ },{passive:false});
+ viewport.addEventListener('touchend',()=>{gestureY=null;if(gestureActive){gestureActive=false;snapExpansion();}});
+
+ function enableControls(){SPOKES.forEach(c=>{c.marker.disabled=false;if(c.entry)c.entry.disabled=false;});homeEntry.disabled=false;}
+
+ Promise.all([load(upperSrc),load(lowerSrc)]).then(images=>{
+  [upper,lower]=images;
   ready=true;
-  draw(0);
-  camera.disabled=false;entry.disabled=false;
-  workLogo.disabled=false;workEntry.disabled=false;
+  draw();
+  enableControls();
+  status.textContent='Home Canvas';
+  openInitialCanvas();
+ }).catch(()=>{
+  ready=true;
+  draw();
+  enableControls();
   status.textContent='Camera animation unavailable. Photography is still available.';
   openInitialCanvas();
  });
