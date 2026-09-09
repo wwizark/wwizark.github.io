@@ -48,7 +48,7 @@
  const SWIPE_DRAG_FRACTION=.4;       // desktop wheel/trackpad travel for a full handoff
  const SWIPE_DRAG_MAX=520;            // keep very wide desktop gestures within a usable range
  const SWIPE_COMMIT_PROGRESS=.7;      // 30% rollback / 70% commit behavior
- const SWIPE_HANDOFF_FRACTION=.18;  // first part of a drag directly docks detail before ring travel
+ const SWIPE_HANDOFF_FRACTION=.45;  // collapse completes early while ring travel begins immediately
  const SWIPE_ROLLBACK_MS=420;        // incomplete gestures settle back without a long input tail
  const DESKTOP_SWIPE_SETTLE_MS=280;   // idle time that ends a horizontal wheel gesture
  const PAN_SPLIT=.65;                // fraction of a slide spent opening the lens
@@ -114,6 +114,7 @@
  let navigationPending=false;
  let lastLens=-1;
  let currentId='home';                 // the canvas we rest on / are heading to
+ let viewportWidth=0,viewportHeight=0; // cached by ResizeObserver; never measure layout in the gesture hot path
  let activeLogoDock=0;                 // 0..1 — how far the current logo has docked into the nav (scroll)
  let pos=CANVASES.home.index;          // continuous ring position the screen is centred on
  const readingPositions=Object.create(null);
@@ -257,8 +258,8 @@
 
  function placeView(){
   // ---- Metrics: derive every size from the current viewport -----------------
-  const vw=viewport.clientWidth;
-  const vh=viewport.clientHeight;
+  const vw=viewportWidth||(viewportWidth=viewport.clientWidth);
+  const vh=viewportHeight||(viewportHeight=viewport.clientHeight);
   const heightLimitedMax=Math.min(LOGO_MAX,Math.max(LOGO_MIN,(vh-130)/CAMERA_RATIO));
   const fullWidth=Math.min(vw-32,heightLimitedMax,Math.max(LOGO_MIN,vw*.4));
   const fullHeight=fullWidth*CAMERA_RATIO;
@@ -636,7 +637,12 @@
  }
  // Native scroll changes docking geometry; coalesce it into the shared renderer.
  ALL.forEach(c=>c.el.addEventListener('scroll',schedulePlace,{passive:true}));
- new ResizeObserver(schedulePlace).observe(viewport);
+ new ResizeObserver(entries=>{
+  const rect=entries[0].contentRect;
+  viewportWidth=rect.width;
+  viewportHeight=rect.height;
+  schedulePlace();
+ }).observe(viewport);
 
  // Markers overlay the scroll container but aren't inside it, so forward
  // wheel/touch over a marker to whichever canvas is currently open.
@@ -711,6 +717,7 @@
   swipe.panStarted=!swipe.handoffRequired;
   swipe.settling=false;
   handoffAnimating=true;
+  root.classList.add('is-swiping');
   ALL.forEach(c=>{
    c.el.style.overflowY='hidden';
    c.content.inert=true;
@@ -723,44 +730,34 @@
   swipe.target=ORDER[ringIndex(CANVASES[currentId].index+panTargetOffset)];
   swipe.travel=panTravel;
   swipe.progress=clamp(Math.abs(panTravel));
-  expansion=0;
-  CANVASES[currentId].el.scrollTop=0;
   pos=swipe.startPos+panTravel;
   placeView();
  }
  function updateSwipeTravel(travel){
   if(!swipe.preview||swipe.settling)return;
   swipe.rawTravel=travel;
-  let panTravel=travel;
+  const active=CANVASES[currentId].el;
   if(swipe.handoffRequired){
-   const distance=Math.abs(travel);
-   const handoffProgress=clamp(distance/SWIPE_HANDOFF_FRACTION);
-   const active=CANVASES[currentId].el;
+   const handoffProgress=clamp(Math.abs(travel)/SWIPE_HANDOFF_FRACTION);
    expansion=swipe.startExpansion*(1-ease(handoffProgress));
    active.scrollTop=swipe.startScroll*(1-ease(handoffProgress));
-   pos=swipe.startPos;
-   placeView();
-   if(handoffProgress<1){
-    swipe.panStarted=false;
-    swipe.travel=0;
-    swipe.progress=0;
-    swipe.target=null;
-    return;
+   if(handoffProgress>=1){
+    expansion=0;
+    active.scrollTop=0;
    }
-   swipe.panStarted=true;
+  }else{
    expansion=0;
    active.scrollTop=0;
-   const direction=Math.sign(travel);
-   panTravel=direction*Math.max(0,(distance-SWIPE_HANDOFF_FRACTION)/(1-SWIPE_HANDOFF_FRACTION));
   }
-  renderSwipePan(panTravel);
+  swipe.panStarted=Math.abs(travel)>1e-4;
+  renderSwipePan(travel);
  }
  function updateSwipePreview(dx){
-  const swipeDistance=Math.max(1,viewport.clientWidth*TOUCH_SWIPE_DRAG_FRACTION);
+  const swipeDistance=Math.max(1,viewportWidth*TOUCH_SWIPE_DRAG_FRACTION);
   updateSwipeTravel(-dx/swipeDistance); // ring moves opposite the finger
  }
  function updateDesktopSwipePreview(dx){
-  const swipeDistance=Math.max(1,Math.min(SWIPE_DRAG_MAX,viewport.clientWidth*SWIPE_DRAG_FRACTION));
+  const swipeDistance=Math.max(1,Math.min(SWIPE_DRAG_MAX,viewportWidth*SWIPE_DRAG_FRACTION));
   updateSwipeTravel(dx/swipeDistance);
  }
  function finishSwipePreview(){
@@ -784,6 +781,7 @@
    expansion=0;
    active.scrollTop=0;
    handoffAnimating=false;
+   root.classList.remove('is-swiping');
    const commitPos=swipe.startPos+targetOffset;
    go(commitTarget,commitPos);
    return true;
@@ -802,6 +800,7 @@
    handoffAnimating=false;
    swipe.settling=false;
    swipe.preview=false;
+   root.classList.remove('is-swiping');
    placeView();
   },id=>{handoffFrame=id;});
   return true;
@@ -846,7 +845,19 @@
   if(applyTransitionScroll(d)){e.preventDefault();clearTimeout(snapTimer);snapTimer=setTimeout(snapExpansion,TRANSITION_SETTLE_MS);}
  },{passive:false});
  let gestureX=null,gestureY=null,gestureLastX=null,gestureLastTime=0,gestureVelocityX=0,gestureAxis=null,gestureActive=false;
+ let touchSwipeFrame=0,touchSwipePendingDx=0;
+ function scheduleTouchSwipe(dx){
+  touchSwipePendingDx=dx;
+  if(touchSwipeFrame)return;
+  touchSwipeFrame=requestAnimationFrame(()=>{
+   touchSwipeFrame=0;
+   updateSwipePreview(touchSwipePendingDx);
+  });
+ }
  function resetTouchGesture(){
+  cancelAnimationFrame(touchSwipeFrame);
+  touchSwipeFrame=0;
+  touchSwipePendingDx=0;
   gestureX=gestureY=gestureLastX=null;
   gestureLastTime=0;
   gestureVelocityX=0;
@@ -889,7 +900,7 @@
    e.preventDefault();
    gestureActive=true;
    if(!swipe.preview&&!beginSwipePreview())return;
-   updateSwipePreview(dx);
+   scheduleTouchSwipe(dx);
    return;
   }
   const d=gestureY-y;                    // +down, −up
@@ -902,9 +913,11 @@
    const endX=endTouch?endTouch.clientX:gestureLastX;
    let releaseTravel=0;
    if(performance.now()-gestureLastTime<=TOUCH_VELOCITY_MAX_AGE){
-    const releaseLimit=viewport.clientWidth*TOUCH_RELEASE_MAX_FRACTION;
+    const releaseLimit=viewportWidth*TOUCH_RELEASE_MAX_FRACTION;
     releaseTravel=Math.max(-releaseLimit,Math.min(releaseLimit,gestureVelocityX*TOUCH_RELEASE_PROJECT_MS));
    }
+   cancelAnimationFrame(touchSwipeFrame);
+   touchSwipeFrame=0;
    updateSwipePreview(endX-gestureX+releaseTravel);
    finishSwipePreview();
   }else if(swipe.preview){
