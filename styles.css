@@ -122,13 +122,13 @@ button:disabled {cursor:wait;}
    deepens on hover/focus. The edge labels beneath carry the hint for touch. */
 /* Logos are solid rounded boxes → box-shadow follows their shape correctly. */
 #camera-portfolio .work-logo,
-#camera-portfolio .notes-logo {box-shadow:0 3px 14px rgba(var(--ink-rgb),.08);transition:box-shadow 200ms ease,opacity 220ms ease;}
+#camera-portfolio .notes-logo {box-shadow:0 3px 14px rgba(var(--ink-rgb),.08);transition:box-shadow 200ms ease;}
 #camera-portfolio .work-logo:hover,#camera-portfolio .work-logo:focus-visible,
 #camera-portfolio .notes-logo:hover,#camera-portfolio .notes-logo:focus-visible {box-shadow:0 8px 28px rgba(var(--ink-rgb),.18);}
 /* The camera is a transparent cut-out, so box-shadow would draw a rectangle
    around the whole image (background included). drop-shadow follows the alpha
    channel, hugging the camera silhouette instead. */
-#camera-portfolio .camera {filter:drop-shadow(0 3px 10px rgba(var(--ink-rgb),.14));transition:filter 200ms ease,opacity 220ms ease;}
+#camera-portfolio .camera {filter:drop-shadow(0 3px 10px rgba(var(--ink-rgb),.14));transition:filter 200ms ease;}
 #camera-portfolio .camera:hover,#camera-portfolio .camera:focus-visible {filter:drop-shadow(0 9px 20px rgba(var(--ink-rgb),.26));}
 #camera-portfolio .work,
 #camera-portfolio .notes {overflow-y:hidden;overscroll-behavior-y:auto;}
@@ -145,7 +145,7 @@ button:disabled {cursor:wait;}
 #camera-portfolio .home-content,
 #camera-portfolio .gallery,
 #camera-portfolio .work-content,
-#camera-portfolio .notes-content {will-change:opacity;transition:opacity 320ms ease;}
+#camera-portfolio .notes-content {will-change:opacity;}
 #camera-portfolio.is-mobile-canvas:not(.is-home-content-visible) .home-content {visibility:hidden;opacity:0;pointer-events:none;}
 #camera-portfolio .canvas-kicker,.work-card > span {font:14px var(--font-sans);letter-spacing:.08em;color:var(--muted);}
 #camera-portfolio .home-content h1 {max-width:720px;margin:12px 0 24px;font-size:clamp(32px,4.2vw,54px);line-height:1.12;}
