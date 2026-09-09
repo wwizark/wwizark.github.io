@@ -99,12 +99,12 @@ terms — the code and our conversations use them precisely.
   alternate transform functions or write a redundant transform in the scroll
   handler: frequent mobile scroll events make text visibly stutter.
 - **Touch direction locking.** A shared viewport touch gesture uses an intentionally asymmetric axis lock: slightly dominant vertical movement locks quickly after `TOUCH_VERTICAL_INTENT`, while horizontal navigation requires the longer `TOUCH_HORIZONTAL_INTENT` and clear dominance set by `TOUCH_HORIZONTAL_AXIS_RATIO`. This keeps diagonal scrolling vertical unless the user makes an unmistakable left/right swipe. A deliberate horizontal swipe drives the continuous ring preview and may cross multiple `ORDER` slots. Touch uses its own, slightly longer `TOUCH_SWIPE_DRAG_FRACTION` so small diagonal corrections do not pull toward a neighbouring canvas; desktop sensitivity remains independent. Horizontal gestures are ignored while a return-to-top, expansion, or pan is active; uncertain gestures do not navigate. Locked horizontal gestures complete on `touchend` or `touchcancel`.
-- **Mobile pull-to-refresh.** A downward finger pull at the true top of a fully
-  expanded canvas is not consumed by the transition engine or marker/title
-  scroll forwarding; canvas overscroll propagates to the browser so native
-  pull-to-refresh remains available. Mobile users can still collapse with the
-  centred marker or orbit ring; desktop upward wheel input retains scroll-paced
-  collapse.
+- **Mobile vertical collapse.** A downward finger pull at the true top of a
+  fully expanded canvas is owned by the transition engine and collapses the
+  detail view continuously into the bird-eye view. This takes priority over
+  native pull-to-refresh inside the canvas viewport. The centred marker and
+  orbit ring remain alternative collapse controls, and desktop upward wheel
+  input retains the same scroll-paced collapse.
 - **Desktop/mobile parity.** Desktop horizontal wheel/trackpad input and mobile horizontal touch input use the same continuous ring preview, handoff, dock, and settle behavior. The detail-to-dock handoff runs on animation frames (never only on input events), so it stays smooth even when touch events are sparse. A gesture begins from the current rendered logo/title positions and must finish that handoff before ring panning starts. Detail text has its own opacity track as well as the canvas fade, following continuous `expansion` on entry and exit rather than appearing in a final frame. Its `visibility` may switch only at a near-zero opacity threshold, never at the expanded endpoint. Incomplete gestures reverse the same visual path: the marker/title return from the dock, the saved reading position restores, and detail content fades back in proportion to the returning expansion; it remains unavailable to interaction until fully restored. Vertical content scrolling preserves the current reading position; it does not reset to the top merely because a touch gesture begins.
 - **Desktop horizontal navigation.** Horizontal trackpad/wheel input (`deltaX`, or Shift+wheel) drives the same live swipe preview as touch and settles after wheel input pauses. Ordinary vertical wheel input keeps scrolling and Ctrl+wheel remains available for browser zoom.
 - **Continuous desktop navigation.** Horizontal wheel input drives one continuous ring preview across as many ring slots as the gesture covers. When wheel input pauses, the nearest canvas slot is selected and the page settles there; input is not queued for later pans.
