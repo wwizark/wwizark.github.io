@@ -42,6 +42,9 @@
  const TOUCH_VERTICAL_AXIS_RATIO=1.05; // slight vertical dominance is enough to keep scrolling
  const TOUCH_HORIZONTAL_AXIS_RATIO=1.75; // horizontal direction must be unmistakable
  const TOUCH_SWIPE_DRAG_FRACTION=.5; // mobile finger travel for a full handoff
+ const TOUCH_RELEASE_PROJECT_MS=140; // short follow-through when a finger releases / leaves the screen
+ const TOUCH_RELEASE_MAX_FRACTION=.22; // cap projected travel so release momentum cannot skip unexpectedly
+ const TOUCH_VELOCITY_MAX_AGE=120;   // ignore stale movement before release
  const SWIPE_DRAG_FRACTION=.4;       // desktop wheel/trackpad travel for a full handoff
  const SWIPE_DRAG_MAX=520;            // keep very wide desktop gestures within a usable range
  const SWIPE_COMMIT_PROGRESS=.7;      // 30% rollback / 70% commit behavior
@@ -858,11 +861,21 @@
   if(!d)return;
   if(applyTransitionScroll(d)){e.preventDefault();clearTimeout(snapTimer);snapTimer=setTimeout(snapExpansion,TRANSITION_SETTLE_MS);}
  },{passive:false});
- let gestureX=null,gestureY=null,gestureAxis=null,gestureActive=false;
+ let gestureX=null,gestureY=null,gestureLastX=null,gestureLastTime=0,gestureVelocityX=0,gestureAxis=null,gestureActive=false;
+ function resetTouchGesture(){
+  gestureX=gestureY=gestureLastX=null;
+  gestureLastTime=0;
+  gestureVelocityX=0;
+  gestureAxis=null;
+  gestureActive=false;
+ }
  viewport.addEventListener('touchstart',e=>{
-  if(e.touches.length!==1){gestureX=gestureY=null;gestureAxis=null;gestureActive=false;return;}
-  gestureX=e.touches[0].clientX;
-  gestureY=e.touches[0].clientY;
+  if(e.touches.length!==1){resetTouchGesture();return;}
+  const touch=e.touches[0];
+  gestureX=gestureLastX=touch.clientX;
+  gestureY=touch.clientY;
+  gestureLastTime=performance.now();
+  gestureVelocityX=0;
   gestureAxis=null;
   gestureActive=false;
  },{passive:true});
@@ -872,6 +885,14 @@
   const y=e.touches[0].clientY;
   const dx=x-gestureX;
   const dy=y-gestureY;
+  const now=performance.now();
+  const sampleMs=now-gestureLastTime;
+  if(sampleMs>0&&sampleMs<80){
+   const sampleVelocity=(x-gestureLastX)/sampleMs;
+   gestureVelocityX=gestureVelocityX*.65+sampleVelocity*.35;
+  }
+  gestureLastX=x;
+  gestureLastTime=now;
   if(!gestureAxis){
    const ax=Math.abs(dx);
    const ay=Math.abs(dy);
@@ -891,18 +912,28 @@
   gestureY=y;
   if(applyTransitionScroll(d)){gestureActive=true;e.preventDefault();}
  },{passive:false});
- function finishTouchGesture(){
-  if(swipe.preview){
+ function finishTouchGesture(e){
+  if(swipe.preview&&gestureAxis==='horizontal'&&gestureX!==null){
+   const endTouch=e.changedTouches&&e.changedTouches[0];
+   const endX=endTouch?endTouch.clientX:gestureLastX;
+   let releaseTravel=0;
+   if(performance.now()-gestureLastTime<=TOUCH_VELOCITY_MAX_AGE){
+    const releaseLimit=viewport.clientWidth*TOUCH_RELEASE_MAX_FRACTION;
+    releaseTravel=Math.max(-releaseLimit,Math.min(releaseLimit,gestureVelocityX*TOUCH_RELEASE_PROJECT_MS));
+   }
+   updateSwipePreview(endX-gestureX+releaseTravel);
+   finishSwipePreview();
+  }else if(swipe.preview){
    finishSwipePreview();
   }else if(gestureActive){
    snapExpansion();
   }
-  gestureX=gestureY=null;
-  gestureAxis=null;
-  gestureActive=false;
+  resetTouchGesture();
  }
- viewport.addEventListener('touchend',finishTouchGesture);
- viewport.addEventListener('touchcancel',finishTouchGesture);
+ // Capture the end above the viewport so an edge release or browser-generated
+ // cancellation cannot strand the horizontal preview in its active state.
+ window.addEventListener('touchend',finishTouchGesture,{capture:true,passive:true});
+ window.addEventListener('touchcancel',finishTouchGesture,{capture:true,passive:true});
 
  function enableControls(){SPOKES.forEach(c=>{c.marker.disabled=false;if(c.entry)c.entry.disabled=false;});homeEntry.disabled=false;}
 
