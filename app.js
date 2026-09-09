@@ -48,9 +48,8 @@
  const SWIPE_DRAG_FRACTION=.4;       // desktop wheel/trackpad travel for a full handoff
  const SWIPE_DRAG_MAX=520;            // keep very wide desktop gestures within a usable range
  const SWIPE_COMMIT_PROGRESS=.7;      // 30% rollback / 70% commit behavior
- const SWIPE_HANDOFF_MS=680;         // give the detail-to-ring handoff time to read
- const SWIPE_QUEUE_REPLAY_MS=260;    // smoothly apply distance received during the handoff
- const SWIPE_ROLLBACK_MS=680;        // give an incomplete touch/trackpad gesture time to settle back
+ const SWIPE_HANDOFF_FRACTION=.18;  // first part of a drag directly docks detail before ring travel
+ const SWIPE_ROLLBACK_MS=420;        // incomplete gestures settle back without a long input tail
  const DESKTOP_SWIPE_SETTLE_MS=280;   // idle time that ends a horizontal wheel gesture
  const PAN_SPLIT=.65;                // fraction of a slide spent opening the lens
  const EXPANDED=.5;                  // expansion above this counts as "expanded"
@@ -118,7 +117,7 @@
  let activeLogoDock=0;                 // 0..1 — how far the current logo has docked into the nav (scroll)
  let pos=CANVASES.home.index;          // continuous ring position the screen is centred on
  const readingPositions=Object.create(null);
- const swipe={preview:false,progress:0,travel:0,rawTravel:0,target:null,startPos:0,startExpansion:0,startScroll:0,startNavDock:0,handoffStart:0,handoffFrame:0,replayFrame:0,panStarted:false,replaying:false,finishPending:false,settling:false};
+ const swipe={preview:false,progress:0,travel:0,rawTravel:0,target:null,startPos:0,startExpansion:0,startScroll:0,startNavDock:0,handoffRequired:false,panStarted:false,settling:false};
 
  const clamp=x=>Math.max(0,Math.min(1,x));
  const ease=x=>{x=clamp(x);return x*x*(3-2*x);};
@@ -708,10 +707,8 @@
   swipe.startExpansion=expansion;
   swipe.startScroll=active.scrollTop;
   swipe.startNavDock=Math.max(activeLogoDock,1-expansion);
-  swipe.handoffStart=performance.now();
-  swipe.panStarted=false;
-  swipe.replaying=false;
-  swipe.finishPending=false;
+  swipe.handoffRequired=swipe.startExpansion>1e-4||swipe.startScroll>0;
+  swipe.panStarted=!swipe.handoffRequired;
   swipe.settling=false;
   handoffAnimating=true;
   ALL.forEach(c=>{
@@ -719,34 +716,6 @@
    c.content.inert=true;
    c.content.setAttribute('aria-hidden','true');
   });
-  const needsHandoff=swipe.startExpansion>1e-4||swipe.startScroll>0;
-  if(!needsHandoff){swipe.panStarted=true;return true;}
-  const animateHandoff=()=>{
-   if(!swipe.preview||swipe.panStarted||swipe.settling)return;
-   const t=clamp((performance.now()-swipe.handoffStart)/SWIPE_HANDOFF_MS);
-   expansion=swipe.startExpansion*(1-ease(t));
-   active.scrollTop=swipe.startScroll*(1-ease(t));
-   pos=swipe.startPos;
-   placeView();
-   if(t<1){swipe.handoffFrame=requestAnimationFrame(animateHandoff);return;}
-   expansion=0;
-   active.scrollTop=0;
-   placeView();
-   // Let the browser paint the completed dock state before any ring movement.
-   swipe.handoffFrame=requestAnimationFrame(()=>{
-    if(!swipe.preview||swipe.settling)return;
-    swipe.panStarted=true;
-    swipe.replaying=true;
-    runTween(SWIPE_QUEUE_REPLAY_MS,t=>{
-     renderSwipePan(swipe.rawTravel*ease(t));
-    },()=>{
-     swipe.replaying=false;
-     renderSwipePan(swipe.rawTravel);
-     if(swipe.finishPending)finishSwipePreview();
-    },id=>{swipe.replayFrame=id;});
-   });
-  };
-  swipe.handoffFrame=requestAnimationFrame(animateHandoff);
   return true;
  }
  function renderSwipePan(panTravel){
@@ -760,13 +729,28 @@
   placeView();
  }
  function updateSwipeTravel(travel){
-  if(!swipe.preview)return;
-  const targetOffset=Math.round(travel);
-  const targetIndex=ringIndex(CANVASES[currentId].index+targetOffset);
-  swipe.target=ORDER[targetIndex];
+  if(!swipe.preview||swipe.settling)return;
   swipe.rawTravel=travel;
-  if(!swipe.panStarted||swipe.replaying||swipe.settling)return;
-  renderSwipePan(travel);
+  let panTravel=travel;
+  if(swipe.handoffRequired){
+   const distance=Math.abs(travel);
+   const handoffProgress=clamp(distance/SWIPE_HANDOFF_FRACTION);
+   const active=CANVASES[currentId].el;
+   expansion=swipe.startExpansion*(1-ease(handoffProgress));
+   active.scrollTop=swipe.startScroll*(1-ease(handoffProgress));
+   pos=swipe.startPos;
+   placeView();
+   if(handoffProgress<1){
+    swipe.panStarted=false;
+    return;
+   }
+   swipe.panStarted=true;
+   expansion=0;
+   active.scrollTop=0;
+   const direction=Math.sign(travel);
+   panTravel=direction*Math.max(0,(distance-SWIPE_HANDOFF_FRACTION)/(1-SWIPE_HANDOFF_FRACTION));
+  }
+  renderSwipePan(panTravel);
  }
  function updateSwipePreview(dx){
   const swipeDistance=Math.max(1,viewport.clientWidth*TOUCH_SWIPE_DRAG_FRACTION);
@@ -778,7 +762,6 @@
  }
  function finishSwipePreview(){
   if(!swipe.preview)return false;
-  if(!swipe.panStarted||swipe.replaying){swipe.finishPending=true;return true;}
   const active=CANVASES[currentId].el;
   const target=swipe.target;
   const startPos=swipe.startPos;
@@ -788,8 +771,6 @@
   const currentExpansion=expansion;
   const currentScroll=active.scrollTop;
   const currentPos=pos;
-  cancelAnimationFrame(swipe.handoffFrame);
-  cancelAnimationFrame(swipe.replayFrame);
   const targetOffset=Math.round(swipe.travel);
   const commitTarget=targetOffset
    ?ORDER[ringIndex(CANVASES[currentId].index+targetOffset)]
@@ -850,7 +831,7 @@
    if(startingSwipe)updateDesktopSwipePreview(desktopSwipeDistance);
    desktopSwipePending=true;
    if(!desktopSwipeFrame)desktopSwipeFrame=requestAnimationFrame(flushDesktopSwipe);
-   const settleDelay=swipe.panStarted?DESKTOP_SWIPE_SETTLE_MS:SWIPE_HANDOFF_MS+DESKTOP_SWIPE_SETTLE_MS;
+   const settleDelay=DESKTOP_SWIPE_SETTLE_MS;
    desktopSwipeReset=setTimeout(()=>{
     finishSwipePreview();
     desktopSwipeDistance=0;
