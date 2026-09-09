@@ -37,9 +37,10 @@
  const TRANSITION_COOLDOWN_MS=420;      // ignore queued wheel input after a snap settles
  const COLLAPSE_DOCK_FRAC=1;         // title reaches the dock exactly as the logo finishes shrinking (in sync)
  const DETAIL_BOTTOM_PAD=90;         // extra room so the end remains reachable after docking
- const TOUCH_INTENT=8;               // px before a touch gesture chooses an axis
- const TOUCH_AXIS_RATIO=1.25;         // direction must be clearly dominant before locking
- const SWIPE_DRAG_FRACTION=.4;        // viewport fraction of horizontal drag for a full handoff
+ const TOUCH_INTENT=10;              // px before a touch gesture chooses an axis
+ const TOUCH_AXIS_RATIO=1.35;        // direction must be clearly dominant before locking
+ const TOUCH_SWIPE_DRAG_FRACTION=.5; // mobile finger travel for a full handoff
+ const SWIPE_DRAG_FRACTION=.4;       // desktop wheel/trackpad travel for a full handoff
  const SWIPE_DRAG_MAX=520;            // keep very wide desktop gestures within a usable range
  const SWIPE_COMMIT_PROGRESS=.7;      // 30% rollback / 70% commit behavior
  const SWIPE_HANDOFF_MS=680;         // give the detail-to-ring handoff time to read
@@ -763,7 +764,7 @@
   renderSwipePan(travel);
  }
  function updateSwipePreview(dx){
-  const swipeDistance=Math.max(1,viewport.clientWidth*SWIPE_DRAG_FRACTION);
+  const swipeDistance=Math.max(1,viewport.clientWidth*TOUCH_SWIPE_DRAG_FRACTION);
   updateSwipeTravel(-dx/swipeDistance); // ring moves opposite the finger
  }
  function updateDesktopSwipePreview(dx){
