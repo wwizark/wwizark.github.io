@@ -30,15 +30,17 @@
  const DOCK_FS=18;                   // title font size in the dock
  const DOCK_TRAVEL_FACTOR=.44;       // adjacent dock titles sit near the viewport edges
  const TITLE_BIG_FACTOR=.16,TITLE_BIG_MIN=30,TITLE_BIG_MAX=64; // title size under the logo
- const COLLAPSE_DIST=320;            // px of scroll to fully collapse/expand (scroll-paced)
- const TRANSITION_DELTA_MAX=42;       // cap a single wheel jump so mouse expansion stays readable
- const TRANSITION_SETTLE_MS=650;      // pause before an incomplete transition snaps back
+ const COLLAPSE_DIST=240;            // px of scroll to fully collapse/expand (scroll-paced)
+ const TRANSITION_DELTA_MAX=64;       // cap a single wheel jump while keeping expansion responsive
+ const TRANSITION_SETTLE_MS=450;      // pause before an incomplete transition snaps back
  const TRANSITION_COMMIT_EXPANSION=.5;  // settle to whichever endpoint is nearest
  const TRANSITION_COOLDOWN_MS=420;      // ignore queued wheel input after a snap settles
  const COLLAPSE_DOCK_FRAC=1;         // title reaches the dock exactly as the logo finishes shrinking (in sync)
  const DETAIL_BOTTOM_PAD=90;         // extra room so the end remains reachable after docking
- const TOUCH_INTENT=10;              // px before a touch gesture chooses an axis
- const TOUCH_AXIS_RATIO=1.35;        // direction must be clearly dominant before locking
+ const TOUCH_VERTICAL_INTENT=5;      // vertical scrolling locks quickly for a responsive canvas
+ const TOUCH_HORIZONTAL_INTENT=18;   // horizontal navigation needs a more deliberate gesture
+ const TOUCH_VERTICAL_AXIS_RATIO=1.05; // slight vertical dominance is enough to keep scrolling
+ const TOUCH_HORIZONTAL_AXIS_RATIO=1.75; // horizontal direction must be unmistakable
  const TOUCH_SWIPE_DRAG_FRACTION=.5; // mobile finger travel for a full handoff
  const SWIPE_DRAG_FRACTION=.4;       // desktop wheel/trackpad travel for a full handoff
  const SWIPE_DRAG_MAX=520;            // keep very wide desktop gestures within a usable range
@@ -870,9 +872,13 @@
   const y=e.touches[0].clientY;
   const dx=x-gestureX;
   const dy=y-gestureY;
-  if(!gestureAxis&&(Math.abs(dx)>=TOUCH_INTENT||Math.abs(dy)>=TOUCH_INTENT)){
-   if(Math.abs(dx)>=Math.abs(dy)*TOUCH_AXIS_RATIO)gestureAxis='horizontal';
-   else if(Math.abs(dy)>=Math.abs(dx)*TOUCH_AXIS_RATIO)gestureAxis='vertical';
+  if(!gestureAxis){
+   const ax=Math.abs(dx);
+   const ay=Math.abs(dy);
+   // Bias ambiguous diagonal movement toward vertical scrolling. A horizontal
+   // canvas swipe only locks after a longer, clearly sideways gesture.
+   if(ay>=TOUCH_VERTICAL_INTENT&&ay>=ax*TOUCH_VERTICAL_AXIS_RATIO)gestureAxis='vertical';
+   else if(ax>=TOUCH_HORIZONTAL_INTENT&&ax>=ay*TOUCH_HORIZONTAL_AXIS_RATIO)gestureAxis='horizontal';
   }
   if(gestureAxis==='horizontal'){
    e.preventDefault();
