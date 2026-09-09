@@ -22,7 +22,7 @@
  */
 (()=>{
  // Tunable timings and sizes (durations in ms).
- const GO_MS_PER_UNIT=1100;          // slide speed, per ring step
+ const GO_MS_PER_UNIT=1500;          // slide speed, per ring step
  const HOME_STATE_MS_PER_UNIT=320;   // Home-logo expand / collapse speed
  const SCROLL_TOP_MIN=500,SCROLL_TOP_MAX=1200,SCROLL_TOP_FACTOR=.65; // return-to-top
  const GAP=32;                       // breathing room below a marker before the nav
@@ -32,6 +32,11 @@
  const COLLAPSE_DIST=320;            // px of scroll to fully collapse/expand (scroll-paced)
  const COLLAPSE_DOCK_FRAC=1;         // title reaches the dock exactly as the logo finishes shrinking (in sync)
  const SCROLL_BUFFER=90;             // px the logo/title hold at full before docking (register the detail view)
+ const TOUCH_INTENT=8;               // px before a touch gesture chooses an axis
+ const SWIPE_DRAG_FRACTION=.4;        // viewport fraction of horizontal drag for a full handoff
+ const SWIPE_COLLAPSE_SHARE=.5;       // first part of a swipe collapses the current canvas
+ const SWIPE_HANDOFF_MS=360;         // shared detail-to-ring handoff before a pan
+ const DESKTOP_SWIPE_SETTLE_MS=280;   // idle time that ends a horizontal wheel gesture
  const PAN_SPLIT=.65;                // fraction of a slide spent opening the lens
  const EXPANDED=.5;                  // expansion above this counts as "expanded"
  const PEEK_SCALE=.6;                // neighbour logo size relative to the centred one
@@ -91,12 +96,13 @@
  const aperture=new Path2D('M89 0 L258 0 Q346 0 346 87 L346 189 Q346 284 257 284 L89 284 Q0 284 0 195 L0 88 Q0 0 89 0 Z');
 
  // State.
- let upper,lower,ready=false,frame=0,logoFrame=0,returnScroll=0,expansion=1,logoStateAnimating=false,scrollingBack=false;
+ let upper,lower,ready=false,frame=0,logoFrame=0,handoffFrame=0,returnScroll=0,expansion=1,logoStateAnimating=false,scrollingBack=false,handoffAnimating=false;
  let currentId='home';                 // the canvas we rest on / are heading to
  let fromId='home';                    // the canvas we are panning away from
  let panEased=1;                       // eased 0..1 progress of the current pan (1 = at rest)
  let activeLogoDock=0;                 // 0..1 — how far the current logo has docked into the nav (scroll)
  let pos=CANVASES.home.index;          // continuous ring position the screen is centred on
+ const readingPositions=Object.create(null);
 
  const clamp=x=>Math.max(0,Math.min(1,x));
  const ease=x=>{x=clamp(x);return x*x*(3-2*x);};
@@ -210,7 +216,7 @@
     c.entry.style.top=(m.y0-(m.y0-m.dockY)*m.navDock)+'px';
     c.entry.style.fontSize=(m.bigFs-(m.bigFs-DOCK_FS)*m.navDock)+'px';
     c.entry.style.transform='translateX('+(dockShift*m.navDock)+'px)';   // slides only once docked
-    c.entry.style.opacity='1';
+    c.entry.style.opacity=swipePreview&&c.id===currentId?String(1-.35*swipeProgress):'1';
     c.entry.style.pointerEvents='auto';   // current title always tappable (collapse/expand/top)
    }else if(Math.abs(rel)<1.5){
     c.entry.style.top=m.dockY+'px';
@@ -343,7 +349,7 @@
 
   // ---- Per-canvas content visibility, scrolling and pointer events ----------
   ALL.forEach(c=>{
-   const active=c.id===currentId&&resting;
+    const active=c.id===currentId&&(resting||handoffAnimating);
    // Content shows only on the active, expanded canvas — so it's hidden during
    // pans (the "collapse then animate" that keeps the pan light) and on collapse.
    c.el.style.opacity=String(active?expansion:0);
@@ -353,6 +359,9 @@
    // locked so the scroll-paced transition owns the wheel/touch.
    c.el.style.overflowY=(active&&expansion>=.999)?'auto':'hidden';
    c.content.style.transform=active?'translateY('+bufferHold+'px)':'none';   // hold across the buffer
+  const contentAvailable=active&&expansion>=.999;
+  c.content.inert=!contentAvailable;
+  c.content.setAttribute('aria-hidden',String(!contentAvailable));
   });
   brand.style.opacity='1';
 
@@ -394,7 +403,6 @@
  function go(toId){
   if(!ready)return;
   fromId=currentId;
-  CANVASES[toId].el.scrollTo({top:0,behavior:'instant'});   // the destination starts at the top
   const fromPos=pos;
   currentId=toId;
   // Travel the SHORTEST way around the ring (so Notes → Photography wraps).
@@ -476,11 +484,43 @@
  // Navigation from a resting canvas: to the top, collapse the current canvas,
  // then pan to the target (which arrives collapsed and expands — see finish()).
  function navigateFromDefault(next){
-  if(!ready||scrollingBack||logoStateAnimating)return;
+  if(!ready||scrollingBack||logoStateAnimating||handoffAnimating)return;
   const active=CANVASES[currentId].el;
   if(active.scrollTop>0){scrollCurrentToTop(()=>navigateFromDefault(next));return;}  // 1) to the top
   if(expansion>.001){animateExpansion(0,()=>go(next));return;}                       // 2) collapse, then
   go(next);                                                                          // 3) pan
+ }
+ function navigateFromSwipe(next){
+  if(!ready||scrollingBack||logoStateAnimating||handoffAnimating||!atRest())return;
+  const active=CANVASES[currentId].el;
+  const fromScroll=active.scrollTop;
+  readingPositions[currentId]=fromScroll;
+  const fromExpansion=expansion;
+  const fromPos=pos;
+  let d=((CANVASES[next].index-pos)%N+N)%N;
+  if(d>N/2)d-=N;
+  if(reduced.matches){
+   expansion=0;
+   active.scrollTop=0;
+   go(next);
+   return;
+  }
+  if(fromScroll<=0&&fromExpansion<=.001){go(next);return;}
+  handoffAnimating=true;
+  cancelAnimationFrame(handoffFrame);
+  status.textContent='Preparing '+CANVASES[next].title+' Canvas';
+  runTween(SWIPE_HANDOFF_MS,t=>{
+   const e=ease(t);
+   expansion=fromExpansion*(1-e);
+   active.scrollTop=fromScroll*(1-e);
+  pos=fromPos+d*.35*e;
+   placeView();
+  },()=>{
+   expansion=0;
+   active.scrollTop=0;
+   handoffAnimating=false;
+   go(next);
+  },id=>{handoffFrame=id;});
  }
  function returnHome(){navigateFromDefault('home');}
 
@@ -491,7 +531,11 @@
  // Expand into the detail view, landing at the END of the scroll buffer so a
  // click skips the "hold" (which is meant for scroll entry) and is ready to scroll.
  function enterDetail(){                 // expand, then sit at the END of the buffer (skip the hold)
-  animateExpansion(1,()=>{CANVASES[currentId].el.scrollTop=SCROLL_BUFFER;});
+  const restore=readingPositions[currentId];
+  animateExpansion(1,()=>{
+   CANVASES[currentId].el.scrollTop=restore>SCROLL_BUFFER?restore:SCROLL_BUFFER;
+   delete readingPositions[currentId];
+  });
  }
  function collapseHere(){               // collapse to the bird-eye view, at the true top
   CANVASES[currentId].el.scrollTop=0;
@@ -591,23 +635,142 @@
  function snapExpansion(){
   if(ready&&!logoStateAnimating&&!scrollingBack&&expansion>1e-4&&expansion<1-1e-4)animateExpansion(expansion>=.5?1:0);
  }
+ function beginSwipePreview(){
+  if(!ready||scrollingBack||logoStateAnimating||handoffAnimating||!atRest())return false;
+  const active=CANVASES[currentId].el;
+  swipePreview=true;
+  swipeProgress=0;
+  swipeTarget=null;
+  swipeStartPos=pos;
+  swipeStartExpansion=expansion;
+  swipeStartScroll=active.scrollTop;
+  handoffAnimating=true;
+  return true;
+ }
+ function updateSwipePreview(dx){
+  if(!swipePreview)return;
+  const direction=dx<0?1:-1;
+  const targetIndex=(CANVASES[currentId].index+direction+N)%N;
+  swipeTarget=ORDER[targetIndex];
+  const swipeDistance=Math.max(1,viewport.clientWidth*SWIPE_DRAG_FRACTION);
+  swipeProgress=clamp(Math.abs(dx)/swipeDistance);
+  const collapseShare=swipeStartExpansion>1e-4?SWIPE_COLLAPSE_SHARE:0;
+  const collapseProgress=collapseShare?clamp(swipeProgress/collapseShare):1;
+  const panProgress=collapseShare
+   ?clamp((swipeProgress-collapseShare)/(1-collapseShare))
+   :swipeProgress;
+  let distance=((CANVASES[swipeTarget].index-swipeStartPos)%N+N)%N;
+  if(distance>N/2)distance-=N;
+  expansion=swipeStartExpansion*(1-collapseProgress);
+  CANVASES[currentId].el.scrollTop=swipeStartScroll*(1-collapseProgress);
+  pos=swipeStartPos+distance*panProgress;
+  placeView();
+ }
+ function finishSwipePreview(){
+  if(!swipePreview)return false;
+  const active=CANVASES[currentId].el;
+  const target=swipeTarget;
+  const startPos=swipeStartPos;
+  const startExpansion=swipeStartExpansion;
+  const startScroll=swipeStartScroll;
+  const progress=swipeProgress;
+  const currentExpansion=expansion;
+  const currentScroll=active.scrollTop;
+  const currentPos=pos;
+  swipePreview=false;
+  if(progress>=.9&&target){
+   readingPositions[currentId]=startScroll;
+   expansion=0;
+   active.scrollTop=0;
+   pos=CANVASES[target].index;
+   handoffAnimating=false;
+   go(target);
+   return true;
+  }
+  runTween(300,t=>{
+   const e=ease(t);
+    expansion=currentExpansion+(startExpansion-currentExpansion)*e;
+    active.scrollTop=currentScroll+(startScroll-currentScroll)*e;
+    pos=currentPos+(startPos-currentPos)*e;
+   placeView();
+  },()=>{
+   expansion=startExpansion;
+   active.scrollTop=startScroll;
+   pos=startPos;
+   handoffAnimating=false;
+   placeView();
+  },id=>{handoffFrame=id;});
+  return true;
+ }
  let snapTimer=0;
+ let desktopSwipeDistance=0,desktopSwipeReset=0;
  viewport.addEventListener('wheel',e=>{
   if(e.ctrlKey)return;
-  const d=e.deltaMode===1?e.deltaY*16:e.deltaY;
+  const horizontal=e.shiftKey?e.deltaY:e.deltaX;
+  const vertical=e.shiftKey?0:e.deltaY;
+  if(Math.abs(horizontal)>Math.abs(vertical)&&horizontal){
+    if(!ready||scrollingBack||logoStateAnimating||(!swipePreview&&!atRest()))return;
+   e.preventDefault();
+    if(!swipePreview&&!beginSwipePreview())return;
+  desktopSwipeDistance-=horizontal;    // wheel delta is content motion; invert to match touch displacement
+   clearTimeout(desktopSwipeReset);
+    updateSwipePreview(desktopSwipeDistance);
+    desktopSwipeReset=setTimeout(()=>{
+     finishSwipePreview();
+     desktopSwipeDistance=0;
+    },DESKTOP_SWIPE_SETTLE_MS);
+   return;
+  }
+  const d=e.deltaMode===1?vertical*16:vertical;
   if(!d)return;
   if(applyTransitionScroll(d)){e.preventDefault();clearTimeout(snapTimer);snapTimer=setTimeout(snapExpansion,140);}
  },{passive:false});
- let gestureY=null,gestureActive=false;
- viewport.addEventListener('touchstart',e=>{gestureY=e.touches[0].clientY;gestureActive=false;},{passive:true});
+ let gestureX=null,gestureY=null,gestureCurrentX=null,gestureAxis=null,gestureActive=false,swipePreview=false,swipeProgress=0,swipeTarget=null,swipeStartPos=0,swipeStartExpansion=0,swipeStartScroll=0;
+ viewport.addEventListener('touchstart',e=>{
+  if(e.touches.length!==1){gestureX=gestureY=gestureCurrentX=null;gestureAxis=null;gestureActive=false;return;}
+  gestureX=e.touches[0].clientX;
+  gestureY=e.touches[0].clientY;
+  gestureCurrentX=gestureX;
+  gestureAxis=null;
+  gestureActive=false;
+ },{passive:true});
  viewport.addEventListener('touchmove',e=>{
-  if(gestureY===null)return;
+  if(gestureX===null||gestureY===null||e.touches.length!==1)return;
+  const x=e.touches[0].clientX;
   const y=e.touches[0].clientY;
+  const dx=x-gestureX;
+  const dy=y-gestureY;
+  gestureCurrentX=x;
+  if(!gestureAxis&&(Math.abs(dx)>=TOUCH_INTENT||Math.abs(dy)>=TOUCH_INTENT)){
+   gestureAxis=Math.abs(dx)>Math.abs(dy)?'horizontal':'vertical';
+  }
+  if(gestureAxis==='horizontal'){
+   e.preventDefault();
+   gestureActive=true;
+    if(!swipePreview&&!beginSwipePreview())return;
+    updateSwipePreview(dx);
+   return;
+  }
   const d=gestureY-y;                    // +down, −up
   gestureY=y;
   if(applyTransitionScroll(d)){gestureActive=true;e.preventDefault();}
  },{passive:false});
- viewport.addEventListener('touchend',()=>{gestureY=null;if(gestureActive){gestureActive=false;snapExpansion();}});
+ function finishTouchGesture(){
+  if(swipePreview){
+   finishSwipePreview();
+  }else if(gestureAxis==='horizontal'&&gestureActive&&!scrollingBack&&!logoStateAnimating&&!handoffAnimating&&atRest()){
+  const direction=gestureCurrentX-gestureX<0?1:-1;
+  const nextIndex=(CANVASES[currentId].index+direction+N)%N;
+   navigateFromSwipe(ORDER[nextIndex]);
+  }else if(gestureActive){
+   snapExpansion();
+  }
+  gestureX=gestureY=gestureCurrentX=null;
+  gestureAxis=null;
+  gestureActive=false;
+ }
+ viewport.addEventListener('touchend',finishTouchGesture);
+ viewport.addEventListener('touchcancel',finishTouchGesture);
 
  function enableControls(){SPOKES.forEach(c=>{c.marker.disabled=false;if(c.entry)c.entry.disabled=false;});homeEntry.disabled=false;}
 

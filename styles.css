@@ -54,7 +54,7 @@ button:disabled {cursor:wait;}
    styles), so these values mainly control the first paint before JS runs. */
 #camera-portfolio {font-family:var(--font-serif);color:var(--ink);width:100%;}
 #camera-portfolio * {box-sizing:border-box;}
-#camera-portfolio .viewport {position:relative;overflow:hidden;max-width:460px;height:650px;margin:auto;background:#eef0ec;}
+#camera-portfolio .viewport {position:relative;overflow:hidden;max-width:460px;height:650px;margin:auto;background:#eef0ec;touch-action:pan-y;}
 #camera-portfolio .track {position:absolute;top:0;bottom:0;left:0;right:auto;display:flex;width:200%;will-change:transform;}
 #camera-portfolio .page {position:relative;width:50%;height:100%;flex:none;background:radial-gradient(ellipse at 30% 30%,var(--wash-blue),transparent 50%),radial-gradient(ellipse at 95% 90%,var(--wash-violet),transparent 48%),radial-gradient(ellipse at 90% 15%,var(--wash-green),transparent 40%),var(--paper);overflow:hidden;}
 #camera-portfolio header {position:absolute;top:30px;left:28px;right:28px;display:flex;justify-content:space-between;align-items:center;z-index:3;}
@@ -249,7 +249,8 @@ body.photo-page {overflow-x:hidden;overflow-y:auto;background:var(--paper);}
 .photo-detail-copy .photo-site-link {font:16px var(--font-sans);}
 @media(max-width:900px) {.photo-hero{grid-template-columns:90px minmax(0,1fr) 130px;}.photo-card-large{grid-column:1 / 8;}.photo-card-offset{grid-column:8 / 13;}.photo-card-bottom{grid-column:2 / 10;}}
 @media(max-width:760px) {.photo-hero{display:block;min-height:0;padding:88px 0 48px;}.photo-hero-index{flex-direction:row;justify-content:space-between;align-items:center;padding:0;margin-bottom:62px;}.photo-hero-copy h1{font-size:clamp(56px,14vw,92px);margin-bottom:25px;}.photo-lede{font-size:16px;}.photo-hero-note{flex-direction:row;justify-content:space-between;align-items:center;margin-top:62px;padding:0;text-align:left;}.photo-index{padding-top:52px;}.photo-grid{grid-template-columns:1fr;row-gap:58px;}.photo-card-large,.photo-card-offset,.photo-card-bottom{grid-column:1 / -1;margin-top:0;}.photo-card-title strong{font-size:18px;}.photo-footer{flex-direction:column;margin-top:100px;}}
-@media(max-width:1000px) and (min-width:761px) {.photo-detail{grid-template-columns:1fr;gap:48px;}.photo-detail-copy{position:static;order:-1;}}
+@media(max-width:1000px) {.photo-detail{grid-template-columns:minmax(0,1fr);gap:48px;}.photo-detail-copy{position:static;order:-1;}}
+@media(max-width:420px) {.photo-shell{padding-left:18px;padding-right:18px;}.photo-site-header.site-nav{padding-left:18px;padding-right:18px;}.photo-detail{gap:32px;}.photo-detail-copy h1{font-size:clamp(42px,13vw,56px);}.photo-detail-copy > p:not(.project-type){font-size:16px;line-height:1.55;}}
 
 /* ===== Shared sticky nav bar + Menu/Contact pop-ups ==================== */
 #camera-portfolio .site-nav,

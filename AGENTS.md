@@ -86,6 +86,10 @@ terms — the code and our conversations use them precisely.
   stays light. Never animate section `left`/`width`.
 - **Cursor pass-through.** Markers AND titles forward wheel/touch to the active
   canvas (`forwardScroll`), so hovering either still scrolls the page.
+- **Touch direction locking.** A shared viewport touch gesture chooses an axis after `TOUCH_INTENT` px: predominantly vertical movement keeps the scroll-paced transition, while a deliberate left/right swipe navigates one adjacent `ORDER` slot through `navigateFromSwipe`. Horizontal gestures are ignored while a return-to-top, expansion, or pan is active; uncertain gestures do not navigate. Locked horizontal gestures complete on `touchend` or `touchcancel`.
+- **Desktop horizontal navigation.** Horizontal trackpad/wheel input (`deltaX`, or Shift+wheel) drives the same live swipe preview as touch and settles after wheel input pauses. Ordinary vertical wheel input keeps scrolling and Ctrl+wheel remains available for browser zoom.
+- **Swipe handoff and reading position.** A horizontal swipe progressively fades and collapses the outgoing detail view during the drag, then advances the ring toward its destination in the latter part of the same gesture. Release commits a sufficiently complete drag; a short or cancelled drag rolls back. The engine remembers a canvas's scroll position when leaving by swipe and restores it only when that canvas is expanded again; a fresh canvas still enters at `SCROLL_BUFFER`.
+- **Collapsed content is unavailable.** A canvas content region is `inert` and `aria-hidden="true"` unless its canvas is current, settled, and fully expanded. This keeps hidden cards and links out of keyboard focus and assistive-technology navigation during bird-eye view and pans.
 - **It's a loop.** Panning always takes the shortest way around the ring, so
   Notes → Photography wraps. Each canvas is placed by `ringRel` (its signed
   distance from `pos`): centre = the full open page, `±1` neighbours peek as
