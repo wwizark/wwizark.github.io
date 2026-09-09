@@ -889,7 +889,6 @@
   }
   const d=gestureY-y;                    // +down, −up
   gestureY=y;
-  if(gestureAxis==='vertical'&&d<0&&CANVASES[currentId].el.scrollTop<=1&&expansion>=.999)return;
   if(applyTransitionScroll(d)){gestureActive=true;e.preventDefault();}
  },{passive:false});
  function finishTouchGesture(){
