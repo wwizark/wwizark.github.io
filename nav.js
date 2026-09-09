@@ -25,7 +25,7 @@
  const menuButton=nav.querySelector('.menu-toggle');
  const contactButton=nav.querySelector('.contact-toggle');
  const menu=makePopover('page-map','page-map',
-  '<h2>Page map</h2><nav>'+
+    '<h2>wizark\'s Portfolio</h2><nav>'+
   '<a href="'+toRoot+'index.html">Home</a>'+
   '<a href="'+toRoot+'index.html#photography">Photography</a>'+
   '<a href="'+toRoot+'index.html#work">Work</a>'+

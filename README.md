@@ -1,10 +1,10 @@
-# wwizark.github.io — Zekai Wei's website
+# wizark's Portfolio
 
 This is a small personal website. It has two parts:
 
-1. **The front page** — a picture of a little camera. When you tap it, the
-   camera "opens" and slides you over to the Photography or Work area. It feels
-   like one moving page instead of clicking to a new one.
+1. **The front page** — a looping canvas ring for Home, Photography, Work, and
+   Notes. Markers collapse into a bird-eye navigation view, and horizontal
+   gestures move between canvases without loading a new page.
 2. **The Photography section** — normal, calm web pages that show the photos
    bigger, one project at a time.
 
@@ -21,7 +21,7 @@ Think of the website like a puppet show:
 | --- | --- | --- |
 | `index.html` | The front page | The **stage** — where the camera puppet stands |
 | `styles.css` | All the colors, sizes, and spacing | The **paint and costumes** — how everything looks |
-| `app.js` | The camera animation and sliding | The **puppeteer** — makes the camera move when you tap |
+| `app.js` | Canvas layout, gestures, and camera animation | The **puppeteer** — moves the whole canvas ring |
 | `nav.js` | The little "Menu" and "Contact" pop-ups | A **small helper** that opens two pop-up notes |
 | `photography/` | The calmer photo pages | A **second, quieter room** you can walk into |
 | `assets/` | All the pictures | The **box of props** (the camera picture, the photos) |
@@ -121,10 +121,9 @@ Then visit **http://localhost:8000** in your browser. (In VS Code, the
 
 ## Good-to-know details
 
-- **Cache versions:** the `?v=2` at the end of `styles.css?v=2` / `app.js?v=2`
-  tells browsers "this is a new version, don't use the old cached one." If you
-  change one of those files and it looks stuck, bump the number (`?v=3`) in
-  every page that loads it.
+- **Cache versions:** the shared `?v=N` suffix on CSS and JavaScript URLs tells
+  browsers when an asset changed. After editing `styles.css`, `app.js`, or
+  `nav.js`, increment `N` consistently in every HTML page that loads them.
 - **If JavaScript is turned off:** the fancy camera can't run, so the front page
   shows a small line with a link straight to the Photography section. Nothing
   becomes a dead end.

@@ -31,11 +31,10 @@ terms — the code and our conversations use them precisely.
 | **Dock** (`.canvas-dock`) | A bar under the main nav. Shown as `navDock` → 1; hidden (opacity 0) when the current title sits under its logo. When shown it holds three titles: left-aligned (left canvas), centred (current), right-aligned (right canvas). |
 | **`navDock`** | 0 = current title under its logo, dock hidden; 1 = title docked, dock shown. `= max(scrollDock, collapseDock)` where `collapseDock = clamp((1−expansion)/COLLAPSE_DOCK_FRAC)` and `COLLAPSE_DOCK_FRAC=1`. Raised by scrolling into content, and by **collapsing** — the title reaches the dock **exactly as the logo finishes shrinking** (in sync). In the **bird-eye view** (`expansion` 0) it's pinned at 1, so the dock is always visible. |
 | **Title** (`entry`) | One per canvas, a slot on a strip that **pans** (`translateX` by `rel × dockTravel`) so titles slide in sync with the logos. The **current** title (rel≈0) sits **under its logo** (big) and animates **up into the dock** (centred, shrinking) as `navDock`→1; scrolling raises it 1:1 and it docks on arrival. The two **neighbour** titles show **only in the dock**, fading in with `navDock`. No edge captions. In the **bird-eye view** the current title is fully **docked** (navDock 1); mid-collapse it's between under-logo and dock, and `bigFs` scales with the current logo width so it shrinks with the logo. |
-| **Watermark** (`.canvas-watermark`) | The current page's name, big and faded, filling the empty page body while the logo is **collapsed** (shrunk). Opacity = `1 − expansion` at rest; hidden when expanded or panning. |
+| **Watermark** (`.canvas-watermark`) | Four potential-content section titles separated by vertical rules, filling the empty page body while the logo is **collapsed** (shrunk). The titles and intervening rules light gradually from top to bottom, then dim in the same order. Opacity = `1 − expansion` at rest; hidden when expanded or panning. |
 | **Home cue** | On the compact (mobile) Home logo, the looping hint that lists the four Home sub-sections (About me / Selected notes / Things happening / More) with a "light" travelling top-to-bottom. The four numbers must stay `01`–`04` and match the cue. |
-| **`currentId` / `fromId`** | The canvas we are resting on / heading to, and the one we are panning away from (used for the content cross-fade). |
+| **`currentId`** | The canvas we are resting on or heading to. During a pan, the outgoing canvas id is local to the navigation function. |
 | **Dock / docking** | As you scroll an open canvas, its marker shrinks and rises up into the sticky nav bar; scrolling back up reverses it. |
-| **`homeExpansion`** | On narrow/mobile widths the Home logo is compact; tapping it expands it (0 → 1). |
 | **`travelX`** | Half a viewport — the pixel distance between adjacent ring positions (so a neighbour peeks half-off the edge). |
 | **`CANVASES`** | The data table in `app.js` that registers every canvas. The engine loops over it; there is no per-canvas layout code. |
 | **Derivatives** | The small responsive image copies (AVIF + JPEG, two sizes) produced by `scripts/build-images.sh` from the full-size originals. |
@@ -49,12 +48,12 @@ terms — the code and our conversations use them precisely.
   collapses/expands its logo (if scrolled, the first tap returns it to the top).
   Tapping the **orbit ring** collapses the current page too. Back and Escape go
   Home. Don't give one canvas a bespoke interaction — behaviour belongs to the
-  engine. (Navigation gestures are still being refined.)
+  engine.
 - **Scroll PACES collapse/expand.** Beyond tapping, scroll drives `expansion`
   directly (`applyTransitionScroll`, not a fixed tween): in the **bird-eye view**
   scrolling **down** expands into the detail view; in the **detail view at the
   top** scrolling **up** collapses into the bird-eye view. The title reaches the
-  dock faster than the logo shrinks (see `navDock`). On idle / touch-end it
+  dock in sync with the logo shrinking (see `navDock`). On idle / touch-end it
   **snaps** to the nearer end (`snapExpansion`). Content only scrolls in the full
   detail view (`overflowY` auto at `expansion ≥ .999`), so the transition owns
   the wheel/touch elsewhere. Works with wheel and touch. **Buffer:** the first
@@ -69,36 +68,42 @@ terms — the code and our conversations use them precisely.
 - **A locked canvas does not scroll.** When a canvas's `overflowY` is `hidden`
   (e.g. the compact/shrunk Home logo), neither native scroll nor the
   marker wheel/touch forwarding may move it.
-- **The engine is data-driven.** All layout, panning, docking, cross-fade, and
+- **Detail-entry settle buffer.** Scroll-paced expansion caps individual
+  `deltaY` steps, keeps the content anchor stable while the title docks, waits
+  through a transition settle buffer, commits meaningful partial entry to
+  detail on idle, and announces when the detail view is ready.
+- **The engine is data-driven.** All layout, panning, docking, visibility, and
   wiring is written once against `CANVASES` in `app.js`. Adding a canvas must
   not require new geometry maths.
 - **To add a canvas:** (1) add a row to `CANVASES` with a `kind`; (2) insert its
   id into `ORDER` at the ring position you want; (3) add its `<section>` of
-  content in `index.html`; (4) add its marker + edge-label elements; (5) append
+  content in `index.html`; (4) add its marker + title-entry elements; (5) append
   its selectors to the shared `.work-*` rules in `styles.css`; (6) add a link in
   `nav.js`'s page map. No layout maths change.
 - **Keep pans smooth.** Navigation goes: scroll the current canvas to the top →
   **collapse it** (shrink logo, hide content) → pan → the destination **arrives
-  collapsed and stays** in the nav view (`finish()` no longer auto-expands; tap
+  collapsed and stays** in the nav view (`finish()` does not auto-expand; tap
   the logo/ring or scroll down to enter). Mid-pan the dock titles pan across
-  (`panTerm`) then settle under the new logo. Sections slide via `transform:
+  with the markers, then settle under the new logo. Sections slide via `transform:
   translate3d` (compositor-only) and content is hidden during pans, so the pan
   stays light. Never animate section `left`/`width`.
 - **Cursor pass-through.** Markers AND titles forward wheel/touch to the active
   canvas (`forwardScroll`), so hovering either still scrolls the page.
 - **Touch direction locking.** A shared viewport touch gesture chooses an axis after `TOUCH_INTENT` px: predominantly vertical movement keeps the scroll-paced transition, while a deliberate left/right swipe navigates one adjacent `ORDER` slot through `navigateFromSwipe`. Horizontal gestures are ignored while a return-to-top, expansion, or pan is active; uncertain gestures do not navigate. Locked horizontal gestures complete on `touchend` or `touchcancel`.
 - **Desktop horizontal navigation.** Horizontal trackpad/wheel input (`deltaX`, or Shift+wheel) drives the same live swipe preview as touch and settles after wheel input pauses. Ordinary vertical wheel input keeps scrolling and Ctrl+wheel remains available for browser zoom.
+- **Continuous desktop navigation.** Horizontal wheel input drives one continuous ring preview across as many ring slots as the gesture covers. When wheel input pauses, the nearest canvas slot is selected and the page settles there; input is not queued for later pans.
 - **Swipe handoff and reading position.** A horizontal swipe progressively fades and collapses the outgoing detail view during the drag, then advances the ring toward its destination in the latter part of the same gesture. Release commits a sufficiently complete drag; a short or cancelled drag rolls back. The engine remembers a canvas's scroll position when leaving by swipe and restores it only when that canvas is expanded again; a fresh canvas still enters at `SCROLL_BUFFER`.
 - **Collapsed content is unavailable.** A canvas content region is `inert` and `aria-hidden="true"` unless its canvas is current, settled, and fully expanded. This keeps hidden cards and links out of keyboard focus and assistive-technology navigation during bird-eye view and pans.
 - **It's a loop.** Panning always takes the shortest way around the ring, so
   Notes → Photography wraps. Each canvas is placed by `ringRel` (its signed
   distance from `pos`): centre = the full open page, `±1` neighbours peek as
-  logos, far side hidden. Only the centred canvas's content is opaque; during a
-  pan it cross-fades with `fromId`.
+  logos, far side hidden. Content is hidden during a pan and only the centred
+  canvas's content becomes available in the settled detail view.
 
 ## Code conventions
 
-- **No commits** unless the user explicitly asks. Never push.
+- **Site identity:** The portfolio is branded **wizark's Portfolio**; Photography remains a section within it.
+- **No commits or pushes** unless the user explicitly asks.
 - **Cache-busting:** every HTML file loads CSS/JS with `?v=N`. When you edit
   `styles.css`, `app.js`, or `nav.js`, bump `N` in **all** HTML files that load
   it (root `index.html` + everything in `photography/`).
@@ -118,8 +123,8 @@ terms — the code and our conversations use them precisely.
 - **Family:** self-hosted **Montebello** (WOFF files in `assets/fonts/`, declared
   via `@font-face` at the top of `styles.css`). Two faces are kept:
   **Montebello Sans** (`--font-sans`, the whole site; `--font-serif` points at it)
-  and **Montebello Rounded** (a display face used only for the Home placeholder
-  section headings, `.home-section h2`). Use the variables for everything else —
+  and **Montebello Rounded** (`--font-rounded`, a display face used only for the
+  Home placeholder section headings, `.home-section h2`). Use the variables —
   never a raw `font-family` literal.
 - The zip also shipped Montebello **Script** and **Script-Textured**; those were
   removed (unused). To reintroduce a display face for headings site-wide, add its
