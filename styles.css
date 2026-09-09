@@ -79,7 +79,15 @@ button:disabled {cursor:wait;}
 /* ----- Refinement: camera/photography as the active canvas -------------- */
 #camera-portfolio .camera {left:-252px;top:230px;width:420px;height:256.348px;z-index:12;transform-origin:top left;will-change:transform;touch-action:pan-y;}
 #camera-portfolio .entry {top:252px;font-size:22px;}
-#camera-portfolio .photos {overflow-y:hidden;overscroll-behavior:contain;scrollbar-width:thin;}
+#camera-portfolio .photos {overflow-y:hidden;overscroll-behavior-y:auto;}
+#camera-portfolio .home,
+#camera-portfolio .photos,
+#camera-portfolio .work,
+#camera-portfolio .notes {scrollbar-width:none;-ms-overflow-style:none;}
+#camera-portfolio .home::-webkit-scrollbar,
+#camera-portfolio .photos::-webkit-scrollbar,
+#camera-portfolio .work::-webkit-scrollbar,
+#camera-portfolio .notes::-webkit-scrollbar {display:none;}
 #camera-portfolio .photos header {position:sticky;top:0;left:0;right:0;height:76px;padding:16px 28px;margin-bottom:-76px;background:rgba(var(--paper-rgb),.93);backdrop-filter:blur(16px);z-index:8;}
 #camera-portfolio .page-brand {position:absolute;left:100px;right:110px;text-align:center;font-size:16px;opacity:0;}
 #camera-portfolio .gallery {position:relative;top:auto;left:auto;right:auto;padding:270px 28px 50px;}
@@ -101,26 +109,10 @@ button:disabled {cursor:wait;}
 #camera-portfolio .home {z-index:2;}
 #camera-portfolio .photos {z-index:1;}
 #camera-portfolio .camera {z-index:30;}
-#camera-portfolio .home {overflow-y:hidden;overscroll-behavior:contain;scrollbar-width:thin;}
+#camera-portfolio .home {overflow-y:hidden;overscroll-behavior-y:auto;}
 /* ===== Home & Work logos + their canvas content ======================== */
 #camera-portfolio .home-logo {position:absolute;left:calc(100vw - min(420px,40vw)/2);top:230px;width:min(420px,40vw);aspect-ratio:2048/1250;height:auto;padding:0;border:1px solid var(--logo-line);border-radius:18px;background:rgba(var(--paper-rgb),.85);font:48px var(--font-serif);letter-spacing:-2px;z-index:30;will-change:left,top,width,height;}
 #camera-portfolio .home-mark {display:block;}
-#camera-portfolio .home-cue {position:absolute;top:calc(100% + 18px);left:50%;display:flex;width:max-content;align-items:center;flex-direction:column;gap:6px;transform:translateX(-50%);opacity:0;visibility:hidden;font:11px/1.2 var(--font-sans);letter-spacing:.12em;text-transform:uppercase;pointer-events:none;transition:opacity 180ms ease,visibility 180ms ease;color:var(--muted);}
-#camera-portfolio .home-cue-line {display:block;width:0;height:15px;border-left:1px dashed var(--logo-line);}
-/* The light fills top-to-bottom, one row at a time, and each row STAYS lit
-   until the whole column is lit — then it resets from the top and repeats. */
-#camera-portfolio .home-cue > * {opacity:.2;animation:home-cue-fill 6s ease-in-out infinite;}
-#camera-portfolio .home-cue > :nth-child(1) {animation-delay:0s;}
-#camera-portfolio .home-cue > :nth-child(2) {animation-delay:.5s;}
-#camera-portfolio .home-cue > :nth-child(3) {animation-delay:1s;}
-#camera-portfolio .home-cue > :nth-child(4) {animation-delay:1.5s;}
-#camera-portfolio .home-cue > :nth-child(5) {animation-delay:2s;}
-#camera-portfolio .home-cue > :nth-child(6) {animation-delay:2.5s;}
-#camera-portfolio .home-cue > :nth-child(7) {animation-delay:3s;}
-#camera-portfolio .home-cue > :nth-child(8) {animation-delay:3.5s;}
-#camera-portfolio .home-cue > :nth-child(9) {animation-delay:4s;}
-#camera-portfolio.is-mobile-canvas.is-home-canvas:not(.is-home-expanded) .home-cue {opacity:1;visibility:visible;}
-@keyframes home-cue-fill {0%{opacity:.2;}5%{opacity:1;}85%{opacity:1;}100%{opacity:.2;}}
 /* Home placeholder section headings use the Montebello Rounded display face. */
 #camera-portfolio .home-section h2 {font-family:var(--font-rounded);}
 #camera-portfolio .work-logo,
@@ -139,7 +131,7 @@ button:disabled {cursor:wait;}
 #camera-portfolio .camera {filter:drop-shadow(0 3px 10px rgba(var(--ink-rgb),.14));transition:filter 200ms ease,opacity 220ms ease;}
 #camera-portfolio .camera:hover,#camera-portfolio .camera:focus-visible {filter:drop-shadow(0 9px 20px rgba(var(--ink-rgb),.26));}
 #camera-portfolio .work,
-#camera-portfolio .notes {overflow-y:hidden;scrollbar-width:thin;overscroll-behavior:contain;}
+#camera-portfolio .notes {overflow-y:hidden;overscroll-behavior-y:auto;}
 #camera-portfolio .work header,
 #camera-portfolio .notes header {position:sticky;top:0;left:0;right:0;height:76px;padding:16px 28px;background:rgba(var(--paper-rgb),.93);}
 #camera-portfolio .work-back,
@@ -149,15 +141,19 @@ button:disabled {cursor:wait;}
 #camera-portfolio .work-content p,
 #camera-portfolio .notes-content p {font-size:18px;line-height:1.6;}
 #camera-portfolio .project-placeholder {margin-top:40px;padding:60px 24px;border:1px solid var(--line);border-radius:4px;font-size:18px;text-align:center;}
-#camera-portfolio .home-content {width:var(--canvas-content-width,60vw);max-width:900px;margin:0 auto;padding:560px 0 clamp(72px,12vh,140px);transition:opacity 180ms ease;will-change:transform;}
+#camera-portfolio .home-content {width:var(--canvas-content-width,60vw);max-width:900px;margin:0 auto;padding:560px 0 clamp(72px,12vh,140px);will-change:transform;}
+#camera-portfolio .home-content,
+#camera-portfolio .gallery,
+#camera-portfolio .work-content,
+#camera-portfolio .notes-content {will-change:opacity;transition:opacity 320ms ease;}
 #camera-portfolio.is-mobile-canvas:not(.is-home-content-visible) .home-content {visibility:hidden;opacity:0;pointer-events:none;}
 #camera-portfolio .canvas-kicker,.work-card > span {font:14px var(--font-sans);letter-spacing:.08em;color:var(--muted);}
 #camera-portfolio .home-content h1 {max-width:720px;margin:12px 0 24px;font-size:clamp(32px,4.2vw,54px);line-height:1.12;}
 #camera-portfolio .home-intro {max-width:620px;font-size:15px;line-height:1.7;}
 .work-grid {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;margin-top:48px;}
 #camera-portfolio.is-narrow-content .work-grid {grid-template-columns:1fr;}
-.work-card {min-height:220px;padding:24px;border:1px solid var(--line);background:rgba(var(--paper-rgb),.3);}
-.work-card h2 {margin:54px 0 14px;font-size:24px;line-height:1.2;}
+.work-card {min-height:260px;padding:24px;border:1px solid var(--line);background:rgba(var(--paper-rgb),.3);display:flex;flex-direction:column;align-items:flex-start;}
+.work-card h2 {margin:52px 0 14px;font-size:24px;line-height:1.2;}
 .work-card p {margin:0;color:var(--muted);font-size:15px;line-height:1.7;}
 #camera-portfolio .home-sections {margin-top:clamp(72px,10vw,150px);border-bottom:1px solid var(--line);}
 #camera-portfolio .home-section {display:grid;grid-template-columns:minmax(70px,.25fr) minmax(0,1fr);gap:clamp(24px,5vw,72px);padding:clamp(48px,7vw,88px) 0;border-top:1px solid var(--line);}
@@ -165,9 +161,6 @@ button:disabled {cursor:wait;}
 #camera-portfolio .home-section h2 {max-width:620px;margin:0 0 24px;font-size:clamp(28px,3.8vw,46px);line-height:1.12;letter-spacing:-.02em;}
 #camera-portfolio .home-section h2 + p {max-width:620px;margin:0;color:var(--muted);font-size:15px;line-height:1.75;}
 #camera-portfolio .home-section-meta {display:block;margin-top:34px;font:11px var(--font-sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);}
-#camera-portfolio .work-grid {margin-top:48px;}
-#camera-portfolio .work-card {min-height:260px;display:flex;flex-direction:column;align-items:flex-start;}
-#camera-portfolio .work-card h2 {margin-top:52px;}
 #camera-portfolio .work-card a {margin-top:auto;color:inherit;text-decoration:none;font:16px var(--font-sans);}
 #camera-portfolio .work-card a:hover {text-decoration:underline;text-underline-offset:5px;}
 #camera-portfolio .work-entry,
@@ -266,7 +259,7 @@ body.photo-page {overflow-x:hidden;overflow-y:auto;background:var(--paper);}
 /* The dock: a persistent bar under the main nav that holds the title strip
    (the titles pan across it, in sync with the logos — positioned by app.js). */
 #camera-portfolio .canvas-dock {position:absolute;top:76px;left:0;right:0;height:44px;z-index:19;opacity:0;pointer-events:none;background:rgba(var(--dock-rgb),.96);backdrop-filter:blur(12px);box-shadow:0 1px 0 rgba(var(--ink-rgb),.06);}
-#camera-portfolio .canvas-watermark {position:absolute;left:var(--canvas-gutter,20px);right:var(--canvas-gutter,20px);top:58%;display:flex;justify-content:center;text-align:center;z-index:2;pointer-events:none;opacity:0;color:rgba(var(--ink-rgb),.42);}
+#camera-portfolio .canvas-watermark {position:absolute;left:var(--canvas-gutter,20px);right:var(--canvas-gutter,20px);top:58%;display:flex;justify-content:center;text-align:center;z-index:2;pointer-events:none;opacity:0;color:rgba(var(--ink-rgb),.42);will-change:opacity;transition:opacity 420ms ease;}
 #camera-portfolio .canvas-watermark-list {display:flex;width:min(100%,520px);align-items:center;flex-direction:column;gap:0;font:26px/1.2 var(--font-sans);letter-spacing:.08em;text-align:center;text-transform:uppercase;}
 #camera-portfolio .canvas-watermark-list > * {opacity:.22;animation:canvas-watermark-cycle 8s ease-in-out infinite;}
 #camera-portfolio .canvas-watermark-list > :nth-child(2) {animation-delay:.5s;}
@@ -278,7 +271,7 @@ body.photo-page {overflow-x:hidden;overflow-y:auto;background:var(--paper);}
 #camera-portfolio .canvas-watermark-list span {padding:10px 0;white-space:nowrap;}
 #camera-portfolio .canvas-watermark-list i {display:block;width:1px;height:24px;background:currentColor;}
 @keyframes canvas-watermark-cycle {0%,7%{opacity:.22;}18%,55%{opacity:1;}66%,100%{opacity:.22;}}
-@media(prefers-reduced-motion:reduce) {html{scroll-behavior:auto;}#camera-portfolio .home-cue > *{animation:none;opacity:.6;}#camera-portfolio .canvas-watermark-list > *{animation:none;opacity:.6;}}
+@media(prefers-reduced-motion:reduce) {html{scroll-behavior:auto;}#camera-portfolio .canvas-watermark-list > *{animation:none;opacity:.6;}}
 /* Dot indicator in the nav centre: four coloured dots rotate around the ring
    as you pan. app.js sets each dot's position and depth. */
 /* selector outranks `.site-nav .nav-title{position:static}` so this stays the

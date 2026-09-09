@@ -26,13 +26,12 @@ terms — the code and our conversations use them precisely.
 | **Ring** (`ORDER`) | The canvases sit on a 1-D **loop**: `['photos','home','work','notes']`, wrapping (Notes → Photography). Each canvas's `index` is its ring slot. |
 | **`pos`** | The continuous ring position the screen is centred on; an integer centres that canvas. Panning moves `pos` the shortest way round the ring, so it loops. |
 | **`ringRel(i)`** | A canvas's signed distance from `pos`, in `(-N/2, N/2]`. `0` = centred (the full open page); `±1` = the two neighbours peeking as logos at the left/right edges; `|rel| ≥ 2` = off-screen (fades as it wraps around the far side). |
-| **Marker** | The element representing a canvas: the **camera** = Photography, **ZW** = Home, **"Work"/"Notes" boxes**. The centred logo is **expanded by default** (`expansion`, compact↔full); tapping it **collapses/expands** (it does NOT navigate) — collapsing also **hides that page's content and enlarges the neighbour logos** (the nav view). On scroll the centred logo shrinks and **docks into the centre of the sticky nav** (stays visible; the dots fade out). Neighbours peek and **stay fixed** — scrolling the current canvas doesn't move or fade them. Tapping the docked logo or its docked title returns the page to the top. The **camera lens cover** is open **only while resting on Photos in the detail view** (`cameraOpen = resting && currentId==='photos' ? expansion : 0`): it stays open when the logo docks on scroll, and stays **closed** in the bird-eye view and during every pan (so it never flashes open mid-pan). |
+| **Marker** | The element representing a canvas: the **camera** = Photography, **ZW** = Home, **"Work"/"Notes" boxes**. The centred logo is **expanded by default** (`expansion`, compact↔full); tapping it **collapses/expands** (it does NOT navigate) — collapsing also **hides that page's content and enlarges the neighbour logos** (the nav view). On scroll the centred logo shrinks and **docks into the centre of the sticky nav** (stays visible; the dots fade out). Neighbours peek and **stay fixed** — scrolling the current canvas doesn't move or fade them. Tapping the docked logo or its docked title returns the page to the top. The **camera lens cover** is open while resting on Photos in the detail view (`cameraOpen = (resting || swipeSettling) && currentId==='photos' ? expansion : 0`): it stays open when the logo docks on scroll, closes continuously while entering the bird-eye view (including a horizontal-swipe handoff), reopens along the same path if that gesture is abandoned, and stays **closed** during a committed pan. |
 | **Orbit ring** (`.canvas-dots`) | The nav-centre indicator: N coloured dots (one per canvas, a `--dot-*` colour each) ride a **tilted ring** — a flat ellipse in perspective (no ring line drawn, no occluder). Dots **spin with `pos`** (`angle = (k − pos)·360°/N`), so panning turns it one notch per canvas and it loops. The current canvas's dot sits at the **front** (nearest, biggest, brightest); others recede to the back (smaller, fainter) via a depth factor. The dots fade as the logo docks in. Positions/scale/opacity/z-index set per frame in `app.js`. **Tapping it collapses the current page** (raises the dock / nav view); if scrolled it returns to the top first. |
-| **Dock** (`.canvas-dock`) | A bar under the main nav. Shown as `navDock` → 1; hidden (opacity 0) when the current title sits under its logo. When shown it holds three titles: left-aligned (left canvas), centred (current), right-aligned (right canvas). |
+| **Dock** (`.canvas-dock`) | A bar under the main nav. Shown as `navDock` → 1; hidden (opacity 0) when the current title sits under its logo. When shown it holds three titles: left-aligned (left canvas), centred (current), right-aligned (right canvas). Titles remain on full-width visual strips so long labels are never clipped; dock clicks are routed by their horizontal position, with the current title returning to the top and either neighbour position navigating to its canvas. |
 | **`navDock`** | 0 = current title under its logo, dock hidden; 1 = title docked, dock shown. `= max(scrollDock, collapseDock)` where `collapseDock = clamp((1−expansion)/COLLAPSE_DOCK_FRAC)` and `COLLAPSE_DOCK_FRAC=1`. Raised by scrolling into content, and by **collapsing** — the title reaches the dock **exactly as the logo finishes shrinking** (in sync). In the **bird-eye view** (`expansion` 0) it's pinned at 1, so the dock is always visible. |
 | **Title** (`entry`) | One per canvas, a slot on a strip that **pans** (`translateX` by `rel × dockTravel`) so titles slide in sync with the logos. The **current** title (rel≈0) sits **under its logo** (big) and animates **up into the dock** (centred, shrinking) as `navDock`→1; scrolling raises it 1:1 and it docks on arrival. The two **neighbour** titles show **only in the dock**, fading in with `navDock`. No edge captions. In the **bird-eye view** the current title is fully **docked** (navDock 1); mid-collapse it's between under-logo and dock, and `bigFs` scales with the current logo width so it shrinks with the logo. |
-| **Watermark** (`.canvas-watermark`) | Four potential-content section titles separated by vertical rules, filling the empty page body while the logo is **collapsed** (shrunk). The titles and intervening rules light gradually from top to bottom, then dim in the same order. Opacity = `1 − expansion` at rest; hidden when expanded or panning. |
-| **Home cue** | On the compact (mobile) Home logo, the looping hint that lists the four Home sub-sections (About me / Selected notes / Things happening / More) with a "light" travelling top-to-bottom. The four numbers must stay `01`–`04` and match the cue. |
+| **Watermark** (`.canvas-watermark`) | Four potential-content section titles separated by vertical rules, filling the empty page body while the logo is **collapsed** (shrunk). The titles and intervening rules light gradually from top to bottom, then dim in the same order. It fades continuously with the bird-eye transition (`ease(1 − expansion)`) and has a 420ms opacity transition for ordinary entry/exit. Committed click navigation disables that transition to suppress the outgoing watermark immediately, keeps it hidden through collapse/pan, then restores the transition only after the destination has painted its landed state. |
 | **`currentId`** | The canvas we are resting on or heading to. During a pan, the outgoing canvas id is local to the navigation function. |
 | **Dock / docking** | As you scroll an open canvas, its marker shrinks and rises up into the sticky nav bar; scrolling back up reverses it. |
 | **`travelX`** | Half a viewport — the pixel distance between adjacent ring positions (so a neighbour peeks half-off the edge). |
@@ -56,18 +55,23 @@ terms — the code and our conversations use them precisely.
   dock in sync with the logo shrinking (see `navDock`). On idle / touch-end it
   **snaps** to the nearer end (`snapExpansion`). Content only scrolls in the full
   detail view (`overflowY` auto at `expansion ≥ .999`), so the transition owns
-  the wheel/touch elsewhere. Works with wheel and touch. **Buffer:** the first
-  `SCROLL_BUFFER` px of content scroll are a hold — the logo + title stay full
-  and **the content stays put** (the active `content` is offset down by
-  `min(scroll, SCROLL_BUFFER)` to cancel the scroll; matching bottom padding
-  keeps the end reachable) — so entering the detail view registers before
-  anything moves. **Clicking** the logo/ring to enter lands at the END of the
-  buffer (`enterDetail` sets `scrollTop = SCROLL_BUFFER`), skipping the hold;
-  scroll entry keeps it. Scroll positions `≤ SCROLL_BUFFER` count as "top" for
-  collapsing, and collapsing resets `scrollTop` to 0.
+  the wheel/touch elsewhere. Works with wheel and touch. **Detail scrolling:**
+  detail content owns native scrolling at all times:
+  its position is never counteracted by a buffer transform after entry. The
+  logo/title start docking from the first detail scroll and travel with that
+  same scroll, preserving clearance without holding or consuming reading input.
+  Clicking the logo/ring enters at `scrollTop = 0`. Only the true top
+  (`scrollTop ≤ 1`) permits an upward gesture to begin collapsing; returning
+  through the final pixels of detail content must fully enlarge the logo/title
+  first. Collapsing resets `scrollTop` to 0.
 - **A locked canvas does not scroll.** When a canvas's `overflowY` is `hidden`
   (e.g. the compact/shrunk Home logo), neither native scroll nor the
   marker wheel/touch forwarding may move it.
+- **Canvas scrollbars are hidden.** The interactive Home, Photography, Work,
+  and Notes scroll containers retain native wheel, trackpad, touch, and keyboard
+  scrolling but do not display a scrollbar. A scrollbar appearing only on
+  detail entry consumes viewport width on some systems and shifts all centred
+  canvas geometry. Standalone Photography pages keep normal browser scrollbars.
 - **Detail-entry settle buffer.** Scroll-paced expansion caps individual
   `deltaY` steps, keeps the content anchor stable while the title docks, waits
   through a transition settle buffer, commits meaningful partial entry to
@@ -81,18 +85,36 @@ terms — the code and our conversations use them precisely.
   its selectors to the shared `.work-*` rules in `styles.css`; (6) add a link in
   `nav.js`'s page map. No layout maths change.
 - **Keep pans smooth.** Navigation goes: scroll the current canvas to the top →
-  **collapse it** (shrink logo, hide content) → pan → the destination **arrives
-  collapsed and stays** in the nav view (`finish()` does not auto-expand; tap
+  use the shared handoff to shrink/fade it while beginning the sideways motion
+  → pan → the destination **arrives collapsed and stays** in the nav view
+  (`finish()` does not auto-expand; tap
   the logo/ring or scroll down to enter). Mid-pan the dock titles pan across
   with the markers, then settle under the new logo. Sections slide via `transform:
   translate3d` (compositor-only) and content is hidden during pans, so the pan
   stays light. Never animate section `left`/`width`.
 - **Cursor pass-through.** Markers AND titles forward wheel/touch to the active
   canvas (`forwardScroll`), so hovering either still scrolls the page.
-- **Touch direction locking.** A shared viewport touch gesture chooses an axis after `TOUCH_INTENT` px: predominantly vertical movement keeps the scroll-paced transition, while a deliberate left/right swipe navigates one adjacent `ORDER` slot through `navigateFromSwipe`. Horizontal gestures are ignored while a return-to-top, expansion, or pan is active; uncertain gestures do not navigate. Locked horizontal gestures complete on `touchend` or `touchcancel`.
+- **Scroll transform stability.** Detail content keeps one stable compositor
+  transform; native scroll events only schedule the shared renderer. Do not
+  alternate transform functions or write a redundant transform in the scroll
+  handler: frequent mobile scroll events make text visibly stutter.
+- **Touch direction locking.** A shared viewport touch gesture chooses an axis after `TOUCH_INTENT` px: predominantly vertical movement keeps the scroll-paced transition, while a deliberate left/right swipe drives the continuous ring preview and may cross multiple `ORDER` slots. Horizontal gestures are ignored while a return-to-top, expansion, or pan is active; uncertain gestures do not navigate. Locked horizontal gestures complete on `touchend` or `touchcancel`.
+- **Mobile pull-to-refresh.** A downward finger pull at the true top of a fully
+  expanded canvas is not consumed by the transition engine or marker/title
+  scroll forwarding; canvas overscroll propagates to the browser so native
+  pull-to-refresh remains available. Mobile users can still collapse with the
+  centred marker or orbit ring; desktop upward wheel input retains scroll-paced
+  collapse.
+- **Desktop/mobile parity.** Desktop horizontal wheel/trackpad input and mobile horizontal touch input use the same continuous ring preview, handoff, dock, and settle behavior. The detail-to-dock handoff runs on animation frames (never only on input events), so it stays smooth even when touch events are sparse. A gesture begins from the current rendered logo/title positions and must finish that handoff before ring panning starts. Detail text has its own opacity track as well as the canvas fade, following continuous `expansion` on entry and exit rather than appearing in a final frame. Its `visibility` may switch only at a near-zero opacity threshold, never at the expanded endpoint. Incomplete gestures reverse the same visual path: the marker/title return from the dock, the saved reading position restores, and detail content fades back in proportion to the returning expansion; it remains unavailable to interaction until fully restored. Vertical content scrolling preserves the current reading position; it does not reset to the top merely because a touch gesture begins.
 - **Desktop horizontal navigation.** Horizontal trackpad/wheel input (`deltaX`, or Shift+wheel) drives the same live swipe preview as touch and settles after wheel input pauses. Ordinary vertical wheel input keeps scrolling and Ctrl+wheel remains available for browser zoom.
 - **Continuous desktop navigation.** Horizontal wheel input drives one continuous ring preview across as many ring slots as the gesture covers. When wheel input pauses, the nearest canvas slot is selected and the page settles there; input is not queued for later pans.
-- **Swipe handoff and reading position.** A horizontal swipe progressively fades and collapses the outgoing detail view during the drag, then advances the ring toward its destination in the latter part of the same gesture. Release commits a sufficiently complete drag; a short or cancelled drag rolls back. The engine remembers a canvas's scroll position when leaving by swipe and restores it only when that canvas is expanded again; a fresh canvas still enters at `SCROLL_BUFFER`.
+- **Swipe handoff and reading position.** A horizontal swipe progressively fades and collapses the outgoing detail view during the drag, then advances the ring toward its destination in the latter part of the same gesture. Release/idle keeps the 30/70 behavior: a gesture reaching 70% commits, while a short/cancelled gesture rolls back. Continuous travel may span any number of complete loops; all destination offsets use positive modulo normalization so large negative offsets never resolve to an invalid slot and roll back. The engine remembers a canvas's scroll position when leaving by swipe and restores it only when that canvas is expanded again; a fresh canvas enters at the true top (`scrollTop = 0`).
+- **Dock-before-pan frame.** A horizontal handoff must render one completed dock frame before the ring begins moving. This prevents a moving canvas from overlapping a logo or title that has not visually finished docking.
+- **Queued handoff travel.** Horizontal distance received while the logo/title
+  are docking is preserved, then replayed smoothly after the completed dock
+  frame. Touch-end or desktop idle settlement waits for that replay. Never reset
+  the pan origin to the accumulated distance: doing so discards valid gesture
+  intent and incorrectly rolls the canvas back.
 - **Collapsed content is unavailable.** A canvas content region is `inert` and `aria-hidden="true"` unless its canvas is current, settled, and fully expanded. This keeps hidden cards and links out of keyboard focus and assistive-technology navigation during bird-eye view and pans.
 - **It's a loop.** Panning always takes the shortest way around the ring, so
   Notes → Photography wraps. Each canvas is placed by `ringRel` (its signed
@@ -116,7 +138,12 @@ terms — the code and our conversations use them precisely.
   headers. Some selectors are declared in layered "refinements"; those are
   commented — keep the ordering, don't merge across media queries.
 - **JavaScript style:** one statement per line; name magic numbers as constants
-  at the top of the IIFE; keep the hot path (`placeView`) allocation-light.
+  at the top of the IIFE; keep related interaction state in a named object;
+  keep the hot path (`placeView`) allocation-light. Shared render helpers own
+  content availability (`opacity`, `visibility`, scrolling, pointer events,
+  `inert`, and `aria-hidden`), and repeated style/attribute writes are cached.
+  Touch and desktop gestures may normalize input differently, but both feed the
+  same swipe-travel renderer and settle logic.
 
 ## Typography
 
