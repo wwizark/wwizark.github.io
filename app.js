@@ -284,7 +284,7 @@
   const travelX=vw/2;
   const resting=atRest();
   const onHome=currentId==='home'&&resting;
-  const scroll=resting?CANVASES[currentId].el.scrollTop:0;   // active canvas scroll (0 while panning)
+  const scroll=(resting||swipe.preview||swipe.settling)?CANVASES[currentId].el.scrollTop:0; // preserve live dock geometry through swipe / rollback
   // navDock: 0 = current title sits under its logo (detail view, at top); 1 =
   // title docked in the nav bar. Raised by scrolling into content, and by
   // COLLAPSING — the title reaches the dock exactly as the logo finishes
