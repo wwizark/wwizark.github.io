@@ -126,9 +126,12 @@ terms — the code and our conversations use them precisely.
   it (root `index.html` + everything in `photography/`).
 - **Colours:** the current UI palette is a web approximation of Pantone 2026
   Cloud Dancer / Powdered Pastels, with darker derived UI accents for accessible
-  contrast. Use the variables in `:root` (`--ink`, `--paper`, `--muted`, `--line`,
-  `--accent`, `--logo-line`, `--powder-*`, `--wash-*`, `--dot-*`). Do not
-  hard-code new hex values; add a variable if you need a new colour.
+  contrast. Each canvas uses a tonal gradient with one dominant family:
+  Photography = gray, Home = blue, Work = yellow, Notes = green. The orbit dot
+  for each canvas uses the same family in a darker contrast-safe value. Use the
+  variables in `:root` (`--ink`, `--paper`, `--muted`, `--line`, `--accent`,
+  `--logo-line`, `--powder-*`, `--tone-*`, `--dot-*`). Do not hard-code new
+  hex values; add a variable if you need a new colour.
 - **Fonts:** use the font CSS variables (`--font-serif`, `--font-sans`). Do not
   introduce new `font-family` literals. See "Typography" below.
 - **CSS structure:** `styles.css` is grouped by `/* ===== Section ===== */`
