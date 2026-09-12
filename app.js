@@ -49,6 +49,7 @@
  const SWIPE_DRAG_MAX=520;            // keep very wide desktop gestures within a usable range
  const SWIPE_COMMIT_PROGRESS=.7;      // 30% rollback / 70% commit behavior
  const SWIPE_HANDOFF_FRACTION=.45;  // collapse completes early while ring travel begins immediately
+ const CLICK_HANDOFF_MS=680;         // click navigation collapse before the committed ring pan
  const SWIPE_ROLLBACK_MS=420;        // incomplete gestures settle back without a long input tail
  const DESKTOP_SWIPE_SETTLE_MS=280;   // idle time that ends a horizontal wheel gesture
  const PAN_SPLIT=.65;                // fraction of a slide spent opening the lens
@@ -557,7 +558,7 @@
   handoffAnimating=true;
   cancelAnimationFrame(handoffFrame);
   status.textContent='Preparing '+CANVASES[next].title+' Canvas';
-  runTween(SWIPE_HANDOFF_MS,t=>{
+  runTween(CLICK_HANDOFF_MS,t=>{
    const e=ease(t);
    expansion=fromExpansion*(1-e);
    active.scrollTop=fromScroll*(1-e);
