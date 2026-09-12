@@ -145,14 +145,15 @@ terms — the code and our conversations use them precisely.
 ## Typography
 
 - **Family:** self-hosted **Montebello** (WOFF files in `assets/fonts/`, declared
-  via `@font-face` at the top of `styles.css`). Two faces are kept:
-  **Montebello Sans** (`--font-sans`, the whole site; `--font-serif` points at it)
-  and **Montebello Rounded** (`--font-rounded`, a display face used only for the
-  Home placeholder section headings, `.home-section h2`). Use the variables —
-  never a raw `font-family` literal.
+  via `@font-face` at the top of `styles.css`). **Montebello Sans**
+  (`--font-sans`) carries body copy, captions, controls, and metadata.
+  **Montebello Rounded** (`--font-rounded`; `--font-serif` points at it) is the
+  display face for canvas labels, logos, major headings, watermarks, and
+  photography titles. This soft heading / clear copy pairing belongs to the
+  Cloud Dancer powdered-pastel design. Use the variables — never a raw
+  `font-family` literal.
 - The zip also shipped Montebello **Script** and **Script-Textured**; those were
-  removed (unused). To reintroduce a display face for headings site-wide, add its
-  `@font-face` and repoint `--font-serif`.
+  removed (unused).
 - Fonts are WOFF only (no WOFF2 supplied) and load with `font-display:swap`.
   Montebello Sans is a display face — if body text / small captions read poorly,
   that's the signal to pick a text face for `--font-sans`.
