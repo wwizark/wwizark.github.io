@@ -176,7 +176,7 @@ terms — the code and our conversations use them precisely.
 ```
 index.html            front page (the canvas engine)
 styles.css  app.js  nav.js
-photography/           the photography site (index + photo-01..03)
+photography/           the photography site (index + photo-01..04)
 assets/camera/ assets/photography/   (+ originals/ subfolders)
 scripts/build-images.sh
 ```

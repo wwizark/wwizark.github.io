@@ -46,10 +46,11 @@ encode() {
   done
 }
 
-echo "Photography stills (800 / 1600):"
+echo "Photography stills (800 / up to 1600):"
 encode assets/photography assets/photography/originals/M000099.jpeg M000099 800 1600
 encode assets/photography assets/photography/originals/M000575.jpeg M000575 800 1600
 encode assets/photography assets/photography/originals/M000703.jpeg M000703 800 1600
+encode assets/photography assets/photography/originals/1000021222.jpg 1000021222 800 1536
 
 echo "Camera hero (480 / 960):"
 encode assets/camera assets/camera/originals/camera-front.webp camera-front 480 960
