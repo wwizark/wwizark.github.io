@@ -394,9 +394,9 @@
   // not close its lens while Photos remains in the detail view.
   if(ctx){
    // Lens is open ONLY while resting on Photos in the detail view (tracks
-   // `expansion`). It stays open when the logo docks on scroll, and stays closed
-   // in the bird-eye view and during any pan (so it never flashes open mid-pan).
-   const cameraOpen=(currentId==='photos'&&(resting||swipe.settling))?expansion:0;
+   // `expansion`). Live horizontal previews retain that same expansion-driven
+   // motion, so the cover closes with the handoff and reopens on rollback.
+   const cameraOpen=(currentId==='photos'&&(resting||swipe.preview||swipe.settling))?expansion:0;
    const lens=ease(clamp(1-Math.abs(ringRel(CANVASES.photos.index)))/PAN_SPLIT)*cameraOpen;
    if(Math.abs(lens-lastLens)>=1e-4){
     lastLens=lens;
