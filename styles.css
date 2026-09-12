@@ -28,15 +28,19 @@
  --font-sans:'Montebello Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
  --font-serif:var(--font-sans);
  --font-rounded:'Montebello Rounded',var(--font-sans);
- --paper:#f1efeb;   --paper-rgb:241,239,235;   /* page background */
- --ink:#353a40;     --ink-rgb:53,58,64;        /* primary text */
- --muted:#52575c;                              /* secondary text / captions */
- --line:#a3abb0;                               /* card + divider borders */
- --accent:#536c80;  --accent-rgb:83,108,128;   /* focus ring + photo hairlines */
- --logo-line:#727b80;                          /* logo outlines + scroll cue */
- --dock-rgb:224,227,224;                       /* the dock (nav title bar) — a shade off the paper */
- --wash-blue:#b1cede; --wash-violet:#b9b3cc; --wash-green:#d7dfcd; /* background gradient washes */
- --dot-photos:#c26b4a; --dot-home:#5b7aa8; --dot-work:#6a9a63; --dot-notes:#c19a4b; /* orbit-ring dot per canvas */
+ /* Cloud Dancer / Powdered Pastels inspired web palette. The pale swatches
+    approximate the supplied Pantone artwork; darker UI tones preserve contrast. */
+ --paper:#f0efeb;   --paper-rgb:240,239,235;   /* Cloud Dancer — page background */
+ --ink:#282a2d;     --ink-rgb:40,42,45;        /* neutral charcoal, 12.5:1 on paper */
+ --muted:#5d6064;                              /* secondary text, 5.5:1 on paper */
+ --line:#a9aaad;                               /* softened Nimbus-derived dividers */
+ --accent:#607b91;  --accent-rgb:96,123,145;   /* deepened Ice Melt for focus, 3.8:1 */
+ --logo-line:#707579;                          /* logo outlines + scroll cue */
+ --dock-rgb:213,213,215;                       /* Nimbus Cloud */
+ --powder-lemon:#f5ebc8; --powder-gray:#d5d5d7; --powder-rose:#ebd8dc;
+ --powder-blue:#d4e4f1; --powder-peach:#f0d8cc; --powder-green:#cad3c0; --powder-violet:#dcd2db;
+ --wash-blue:var(--powder-blue); --wash-violet:var(--powder-violet); --wash-green:var(--powder-green);
+ --dot-photos:#a66f7b; --dot-home:#698ba8; --dot-work:#728969; --dot-notes:#9e8438; /* contrast-safe pastel derivatives */
 }
 
 /* ===== Base / reset ===================================================== */
@@ -57,7 +61,11 @@ button:disabled {cursor:wait;}
 #camera-portfolio * {box-sizing:border-box;}
 #camera-portfolio .viewport {position:relative;overflow:hidden;max-width:460px;height:650px;margin:auto;background:var(--paper);touch-action:pan-y;}
 #camera-portfolio .track {position:absolute;top:0;bottom:0;left:0;right:auto;display:flex;width:200%;will-change:transform;}
-#camera-portfolio .page {position:relative;width:50%;height:100%;flex:none;background:radial-gradient(ellipse at 30% 30%,var(--wash-blue),transparent 50%),radial-gradient(ellipse at 95% 90%,var(--wash-violet),transparent 48%),radial-gradient(ellipse at 90% 15%,var(--wash-green),transparent 40%),var(--paper);overflow:hidden;will-change:transform,opacity;contain:layout paint;}
+#camera-portfolio .page {position:relative;width:50%;height:100%;flex:none;background:radial-gradient(ellipse at 30% 30%,var(--canvas-wash-a,var(--wash-blue)),transparent 50%),radial-gradient(ellipse at 95% 90%,var(--canvas-wash-b,var(--wash-violet)),transparent 48%),radial-gradient(ellipse at 90% 15%,var(--canvas-wash-c,var(--wash-green)),transparent 40%),var(--paper);overflow:hidden;will-change:transform,opacity;contain:layout paint;}
+#camera-portfolio .photos {--canvas-wash-a:var(--powder-rose);--canvas-wash-b:var(--powder-blue);--canvas-wash-c:var(--powder-peach);}
+#camera-portfolio .home {--canvas-wash-a:var(--powder-blue);--canvas-wash-b:var(--powder-lemon);--canvas-wash-c:var(--powder-green);}
+#camera-portfolio .work {--canvas-wash-a:var(--powder-green);--canvas-wash-b:var(--powder-peach);--canvas-wash-c:var(--powder-blue);}
+#camera-portfolio .notes {--canvas-wash-a:var(--powder-violet);--canvas-wash-b:var(--powder-rose);--canvas-wash-c:var(--powder-lemon);}
 #camera-portfolio header {position:absolute;top:30px;left:28px;right:28px;display:flex;justify-content:space-between;align-items:center;z-index:3;}
 #camera-portfolio button {font:inherit;color:inherit;cursor:pointer;}
 #camera-portfolio .camera {position:absolute;width:680px;height:415.039px;left:-420px;top:164px;padding:0;border:0;background:transparent;transform:translateX(0);}

@@ -124,9 +124,11 @@ terms — the code and our conversations use them precisely.
 - **Cache-busting:** every HTML file loads CSS/JS with `?v=N`. When you edit
   `styles.css`, `app.js`, or `nav.js`, bump `N` in **all** HTML files that load
   it (root `index.html` + everything in `photography/`).
-- **Colours:** use the palette CSS variables in `:root` (`--ink`, `--paper`,
-  `--muted`, `--line`, `--accent`, `--logo-line`, `--wash-*`). Do not hard-code
-  new hex values; add a variable if you need a new colour.
+- **Colours:** the current UI palette is a web approximation of Pantone 2026
+  Cloud Dancer / Powdered Pastels, with darker derived UI accents for accessible
+  contrast. Use the variables in `:root` (`--ink`, `--paper`, `--muted`, `--line`,
+  `--accent`, `--logo-line`, `--powder-*`, `--wash-*`, `--dot-*`). Do not
+  hard-code new hex values; add a variable if you need a new colour.
 - **Fonts:** use the font CSS variables (`--font-serif`, `--font-sans`). Do not
   introduce new `font-family` literals. See "Typography" below.
 - **CSS structure:** `styles.css` is grouped by `/* ===== Section ===== */`
