@@ -325,9 +325,13 @@
   // ---- Position each section along the ring via transform (compositor-only,
   // so panning stays smooth — no per-frame layout of full-viewport sections).
   ALL.forEach(c=>{
+   const rel=ringRel(c.index);
    setStyle(c.el,'left','0px');
    setStyle(c.el,'top','0px');
-   setStyle(c.el,'transform','translate3d('+(ringRel(c.index)*travelX)+'px,0,0)');
+   setStyle(c.el,'transform','translate3d('+(rel*travelX)+'px,0,0)');
+   // Canvas backgrounds travel with the ring and crossfade between neighbours.
+   // Detail content has a separate opacity track in applyContentState().
+   setStyle(c.el,'opacity',String(ease(clamp(1-Math.abs(rel)))));
   });
 
   // ---- Markers: the centre is the active page, its two neighbours peek ------
@@ -419,7 +423,6 @@
   const opacity=String(contentOpacity);
   const visible=contentOpacity>.001;
   const usable=visible&&expansion>=.999&&!swipe.preview&&!swipe.settling&&!handoffAnimating;
-  setStyle(c.el,'opacity',opacity);
   setStyle(c.content,'opacity',opacity);
   setStyle(c.content,'visibility',visible?'visible':'hidden');
   setStyle(c.el,'pointerEvents',usable?'auto':'none');

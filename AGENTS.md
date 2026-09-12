@@ -89,9 +89,11 @@ terms — the code and our conversations use them precisely.
   **arrives collapsed and stays** in the nav view
   (`finish()` does not auto-expand; tap
   the logo/ring or scroll down to enter). Mid-pan the dock titles pan across
-  with the markers, then settle under the new logo. Sections slide via `transform:
-  translate3d` (compositor-only) and content is hidden during pans, so the pan
-  stays light. Never animate section `left`/`width`.
+  with the markers, then settle under the new logo. Canvas backgrounds slide
+  via `translate3d` and crossfade from their live `ringRel`, so the tonal
+  gradient remains attached to horizontal input. Detail content has its own
+  opacity track and stays hidden during pans. Never animate section
+  `left`/`width`.
 - **Cursor pass-through.** Markers AND titles forward wheel/touch to the active
   canvas (`forwardScroll`), so hovering either still scrolls the page.
 - **Scroll transform stability.** Detail content keeps one stable compositor
