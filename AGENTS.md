@@ -84,9 +84,9 @@ terms — the code and our conversations use them precisely.
   content in `index.html`; (4) add its marker + title-entry elements; (5) append
   its selectors to the shared `.work-*` rules in `styles.css`; (6) add a link in
   `nav.js`'s page map. No layout maths change.
-- **Keep pans smooth.** Navigation goes: scroll the current canvas to the top →
-  use the shared handoff to shrink/fade it while beginning the sideways motion
-  → pan → the destination **arrives collapsed and stays** in the nav view
+- **Keep pans smooth.** Click navigation goes: scroll the current canvas to
+  the top → shrink/fade it fully into the bird-eye view → pan → the destination
+  **arrives collapsed and stays** in the nav view
   (`finish()` does not auto-expand; tap
   the logo/ring or scroll down to enter). Mid-pan the dock titles pan across
   with the markers, then settle under the new logo. Sections slide via `transform:

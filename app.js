@@ -525,8 +525,8 @@
   },id=>{frame=id;});
  }
 
- // Navigation from a resting canvas: to the top, collapse the current canvas,
- // then pan to the target, which arrives collapsed and stays in bird-eye view.
+ // Click navigation from a resting canvas is deliberately phased: return to
+ // the top, collapse fully into bird-eye view, then pan to the target.
  function navigateFromDefault(next){
   if(!ready||scrollingBack||logoStateAnimating||handoffAnimating)return;
   navigationPending=true;
@@ -562,7 +562,7 @@
    const e=ease(t);
    expansion=fromExpansion*(1-e);
    active.scrollTop=fromScroll*(1-e);
-   pos=fromPos+d*.35*e;
+   pos=fromPos;
    placeView();
   },()=>{
    expansion=0;
