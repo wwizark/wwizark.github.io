@@ -46,6 +46,7 @@
  const TOUCH_RELEASE_MAX_FRACTION=.22; // cap projected travel so release momentum cannot skip unexpectedly
  const TOUCH_VELOCITY_MAX_AGE=120;   // ignore stale movement before release
  const SWIPE_DRAG_FRACTION=.4;       // desktop wheel/trackpad travel for a full handoff
+ const DESKTOP_WHEEL_SPEED=1.25;      // slightly quicker horizontal wheel / trackpad response
  const SWIPE_DRAG_MAX=520;            // keep very wide desktop gestures within a usable range
  const SWIPE_COMMIT_PROGRESS=.7;      // 30% rollback / 70% commit behavior
  const SWIPE_HANDOFF_FRACTION=.45;  // collapse completes early while ring travel begins immediately
@@ -832,7 +833,7 @@
     desktopSwipePending=false;
     if(!beginSwipePreview())return;
    }
-   desktopSwipeDistance-=horizontal;    // wheel delta is content motion; invert to match touch displacement
+   desktopSwipeDistance+=horizontal*DESKTOP_WHEEL_SPEED; // wheel delta already follows native content motion
    clearTimeout(desktopSwipeReset);
    if(startingSwipe)updateDesktopSwipePreview(desktopSwipeDistance);
    desktopSwipePending=true;
