@@ -61,6 +61,7 @@
 
  // Elements.
  const root=document.getElementById('camera-portfolio');
+ const wallpaper=root.querySelector('.canvas-wallpaper');
  const track=root.querySelector('.track');
  const camera=root.querySelector('.camera');
  const entry=root.querySelector('.entry');
@@ -322,6 +323,15 @@
   setStyle(track,'width','200%');
   if(track.style.getPropertyValue('--view-width')!==viewWidthPx)track.style.setProperty('--view-width',viewWidthPx);
   setStyle(track,'transform','none');
+
+  // ---- One continuous wallpaper moves beneath the transparent canvases. -----
+  // Its pattern repeats once per complete ring, so crossing Notes / Photography
+  // is visually seamless and does not crossfade to a separate background.
+  const wallpaperLoop=N*travelX;
+  const wallpaperPos=ringIndex(pos);
+  setStyle(wallpaper,'width',(wallpaperLoop*3)+'px');
+  setStyle(wallpaper,'backgroundSize',wallpaperLoop+'px 100%');
+  setStyle(wallpaper,'transform','translate3d('+(vw/2-wallpaperPos*travelX-wallpaperLoop)+'px,0,0)');
 
   // ---- Position each section along the ring via transform (compositor-only,
   // so panning stays smooth — no per-frame layout of full-viewport sections).

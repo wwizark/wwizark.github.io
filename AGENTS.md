@@ -31,6 +31,7 @@ terms — the code and our conversations use them precisely.
 | **Dock** (`.canvas-dock`) | A bar under the main nav. Shown as `navDock` → 1; hidden (opacity 0) when the current title sits under its logo. When shown it holds three titles: left-aligned (left canvas), centred (current), right-aligned (right canvas). Titles remain on full-width visual strips so long labels are never clipped; dock clicks are routed by their horizontal position, with the current title returning to the top and either neighbour position navigating to its canvas. |
 | **`navDock`** | 0 = current title under its logo, dock hidden; 1 = title docked, dock shown. `= max(scrollDock, collapseDock)` where `collapseDock = clamp((1−expansion)/COLLAPSE_DOCK_FRAC)` and `COLLAPSE_DOCK_FRAC=1`. Raised by scrolling into content, and by **collapsing** — the title reaches the dock **exactly as the logo finishes shrinking** (in sync). In the **bird-eye view** (`expansion` 0) it's pinned at 1, so the dock is always visible. |
 | **Title** (`entry`) | One per canvas, a slot on a strip that **pans** (`translateX` by `rel × dockTravel`) so titles slide in sync with the logos. The **current** title (rel≈0) sits **under its logo** (big) and animates **up into the dock** (centred, shrinking) as `navDock`→1; scrolling raises it 1:1 and it docks on arrival. The two **neighbour** titles show **only in the dock**, fading in with `navDock`. No edge captions. In the **bird-eye view** the current title is fully **docked** (navDock 1); mid-collapse it's between under-logo and dock, and `bigFs` scales with the current logo width so it shrinks with the logo. |
+| **Wallpaper** (`.canvas-wallpaper`) | One continuous, horizontally repeating tie-dye field beneath every transparent canvas. Photography, Home, Work, and Notes have gray, blue, yellow, and green dominant regions at different vertical centres. `placeView()` translates the wallpaper from continuous `pos`; canvases never crossfade between separate backgrounds. |
 | **Watermark** (`.canvas-watermark`) | Four potential-content section titles separated by vertical rules, filling the empty page body while the logo is **collapsed** (shrunk). The titles and intervening rules light gradually from top to bottom, then dim in the same order. It fades continuously with the bird-eye transition (`ease(1 − expansion)`) and has a 420ms opacity transition for ordinary entry/exit. Committed click navigation disables that transition to suppress the outgoing watermark immediately, keeps it hidden through collapse/pan, then restores the transition only after the destination has painted its landed state. |
 | **`currentId`** | The canvas we are resting on or heading to. During a pan, the outgoing canvas id is local to the navigation function. |
 | **Dock / docking** | As you scroll an open canvas, its marker shrinks and rises up into the sticky nav bar; scrolling back up reverses it. |
@@ -89,9 +90,9 @@ terms — the code and our conversations use them precisely.
   **arrives collapsed and stays** in the nav view
   (`finish()` does not auto-expand; tap
   the logo/ring or scroll down to enter). Mid-pan the dock titles pan across
-  with the markers, then settle under the new logo. Canvas backgrounds slide
-  via `translate3d` and crossfade from their live `ringRel`, so the tonal
-  gradient remains attached to horizontal input. Detail content has its own
+  with the markers, then settle under the new logo. The single continuous
+  wallpaper translates via `translate3d` from live `pos`; canvas sections stay
+  transparent and only their content opacity changes. Detail content has its own
   opacity track and stays hidden during pans. Never animate section
   `left`/`width`.
 - **Cursor pass-through.** Markers AND titles forward wheel/touch to the active
@@ -128,8 +129,9 @@ terms — the code and our conversations use them precisely.
   it (root `index.html` + everything in `photography/`).
 - **Colours:** the current UI palette is a web approximation of Pantone 2026
   Cloud Dancer / Powdered Pastels, with darker derived UI accents for accessible
-  contrast. Each canvas uses a tonal gradient with one dominant family:
-  Photography = gray, Home = blue, Work = yellow, Notes = green. The orbit dot
+  contrast. One continuous tie-dye wallpaper has a dominant field for each canvas:
+  Photography = gray, Home = blue, Work = yellow, Notes = green. Each field has
+  its own vertical centre, and the wallpaper translates with `pos`. The orbit dot
   for each canvas uses the same family in a darker contrast-safe value. Use the
   variables in `:root` (`--ink`, `--paper`, `--muted`, `--line`, `--accent`,
   `--logo-line`, `--powder-*`, `--tone-*`, `--dot-*`). Do not hard-code new
