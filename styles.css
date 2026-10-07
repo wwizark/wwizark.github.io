@@ -61,7 +61,51 @@ button:disabled {cursor:wait;}
 #camera-portfolio {font-family:var(--font-sans);color:var(--ink);width:100%;}
 #camera-portfolio * {box-sizing:border-box;}
 #camera-portfolio .viewport {position:relative;overflow:hidden;max-width:460px;height:650px;margin:auto;background:var(--paper);touch-action:pan-y;}
-#camera-portfolio .canvas-wallpaper {position:absolute;top:0;left:0;height:100%;width:600vw;background-color:var(--paper);background-image:radial-gradient(ellipse 18% 76% at 0% 30%,var(--tone-photos) 0%,var(--powder-gray) 34%,transparent 74%),radial-gradient(ellipse 18% 76% at 100% 30%,var(--tone-photos) 0%,var(--powder-gray) 34%,transparent 74%),radial-gradient(ellipse 20% 72% at 25% 70%,var(--tone-home) 0%,var(--powder-blue) 35%,transparent 76%),radial-gradient(ellipse 19% 78% at 50% 22%,var(--tone-work) 0%,var(--powder-lemon) 34%,transparent 75%),radial-gradient(ellipse 21% 70% at 75% 76%,var(--tone-notes) 0%,var(--powder-green) 36%,transparent 78%);background-repeat:repeat-x;background-size:200vw 100%;pointer-events:none;will-change:transform;z-index:0;}
+#camera-portfolio .canvas-wallpaper {
+ position:absolute;
+ top:-20vh;
+ left:0;
+ z-index:0;
+ width:600vw;
+ height:230vh;
+ pointer-events:none;
+ will-change:transform;
+ background-color:var(--paper);
+ /* One two-dimensional surface. Edge-crossing clusters have matching copies
+    one circumference away, so all layers meet at the horizontal seam. */
+ background-image:
+ /* Photography: gray clusters crossing the ring boundary. */
+ radial-gradient(ellipse 17% 22% at 2% 16%,color-mix(in srgb,var(--powder-gray) 82%,transparent) 0%,transparent 74%),
+ radial-gradient(ellipse 17% 22% at 102% 16%,color-mix(in srgb,var(--powder-gray) 82%,transparent) 0%,transparent 74%),
+ radial-gradient(ellipse 13% 31% at 9% 62%,color-mix(in srgb,var(--powder-gray) 72%,transparent) 0%,transparent 72%),
+ radial-gradient(ellipse 13% 31% at 109% 62%,color-mix(in srgb,var(--powder-gray) 72%,transparent) 0%,transparent 72%),
+ radial-gradient(ellipse 19% 20% at 97% 87%,color-mix(in srgb,var(--powder-gray) 78%,transparent) 0%,transparent 73%),
+ radial-gradient(ellipse 19% 20% at -3% 87%,color-mix(in srgb,var(--powder-gray) 78%,transparent) 0%,transparent 73%),
+ /* Home: blue clusters at different heights. */
+ radial-gradient(ellipse 21% 24% at 18% 11%,color-mix(in srgb,var(--powder-blue) 94%,transparent) 0%,transparent 72%),
+ radial-gradient(ellipse 15% 36% at 31% 46%,color-mix(in srgb,var(--powder-blue) 92%,transparent) 0%,transparent 71%),
+ radial-gradient(ellipse 23% 19% at 22% 85%,color-mix(in srgb,var(--powder-blue) 86%,transparent) 0%,transparent 75%),
+ /* Work: yellow clusters arranged diagonally. */
+ radial-gradient(ellipse 18% 31% at 45% 21%,color-mix(in srgb,var(--powder-lemon) 94%,transparent) 0%,transparent 72%),
+ radial-gradient(ellipse 24% 20% at 58% 49%,color-mix(in srgb,var(--powder-lemon) 90%,transparent) 0%,transparent 74%),
+ radial-gradient(ellipse 14% 33% at 51% 88%,color-mix(in srgb,var(--powder-lemon) 92%,transparent) 0%,transparent 70%),
+ /* Notes: green clusters. */
+ radial-gradient(ellipse 22% 21% at 68% 14%,color-mix(in srgb,var(--powder-green) 94%,transparent) 0%,transparent 73%),
+ radial-gradient(ellipse 14% 36% at 79% 48%,color-mix(in srgb,var(--powder-green) 88%,transparent) 0%,transparent 71%),
+ radial-gradient(ellipse 24% 19% at 73% 83%,color-mix(in srgb,var(--powder-green) 92%,transparent) 0%,transparent 75%),
+ /* Smaller colors blend across the informal regions. */
+ radial-gradient(ellipse 9% 15% at 14% 42%,color-mix(in srgb,var(--powder-rose) 62%,transparent) 0%,transparent 69%),
+ radial-gradient(ellipse 11% 17% at 37% 72%,color-mix(in srgb,var(--powder-violet) 58%,transparent) 0%,transparent 70%),
+ radial-gradient(ellipse 10% 16% at 41% 64%,color-mix(in srgb,var(--powder-peach) 58%,transparent) 0%,transparent 69%),
+ radial-gradient(ellipse 12% 12% at 55% 17%,color-mix(in srgb,var(--powder-lemon) 56%,transparent) 0%,transparent 68%),
+ radial-gradient(ellipse 10% 19% at 61% 72%,color-mix(in srgb,var(--powder-violet) 58%,transparent) 0%,transparent 70%),
+ radial-gradient(ellipse 12% 18% at 88% 31%,color-mix(in srgb,var(--powder-blue) 60%,transparent) 0%,transparent 70%),
+ radial-gradient(ellipse 13% 14% at 91% 59%,color-mix(in srgb,var(--powder-peach) 56%,transparent) 0%,transparent 70%),
+ radial-gradient(ellipse 13% 14% at -9% 59%,color-mix(in srgb,var(--powder-peach) 56%,transparent) 0%,transparent 70%);
+ background-repeat:repeat-x;
+ background-size:200vw 100%;
+ filter:blur(34px) saturate(94%);
+}
 #camera-portfolio .track {position:absolute;top:0;bottom:0;left:0;right:auto;display:flex;width:200%;will-change:transform;}
 #camera-portfolio .page {position:relative;width:50%;height:100%;flex:none;background:transparent;overflow:hidden;will-change:transform,opacity;contain:layout paint;}
 #camera-portfolio header {position:absolute;top:30px;left:28px;right:28px;display:flex;justify-content:space-between;align-items:center;z-index:3;}

@@ -25,6 +25,10 @@
  const GO_MS_PER_UNIT=1500;          // slide speed, per ring step
  const HOME_STATE_MS_PER_UNIT=120;   // Home-logo expand / collapse speed
  const SCROLL_TOP_MIN=500,SCROLL_TOP_MAX=1200,SCROLL_TOP_FACTOR=.65; // return-to-top
+ const WALLPAPER_VERTICAL_PARALLAX=.3; // wallpaper px travelled per detail-scroll px
+ const WALLPAPER_HEIGHT=2.3;          // minimum height in viewport units
+ const WALLPAPER_INSET=.2;            // top overscan in viewport units
+ const WALLPAPER_BLUR_MARGIN=102;     // three times the CSS blur radius
  const GAP=32;                       // breathing room below a marker before the nav
  const DOCK_H=44;                    // height of the dock (the title bar)
  const DOCK_FS=18;                   // title font size in the dock
@@ -324,14 +328,14 @@
   if(track.style.getPropertyValue('--view-width')!==viewWidthPx)track.style.setProperty('--view-width',viewWidthPx);
   setStyle(track,'transform','none');
 
-  // ---- One continuous wallpaper moves beneath the transparent canvases. -----
-  // Its pattern repeats once per complete ring, so crossing Notes / Photography
-  // is visually seamless and does not crossfade to a separate background.
+  // ---- One fixed two-dimensional wallpaper wraps around the complete ring. --
   const wallpaperLoop=N*travelX;
-  const wallpaperPos=ringIndex(pos);
-  setStyle(wallpaper,'width',(wallpaperLoop*3)+'px');
+  const wallpaperPosition=ringIndex(pos);
+  const wallpaperX=vw/2-wallpaperPosition*travelX-wallpaperLoop;
+  const wallpaperY=reduced.matches?0:-scroll*WALLPAPER_VERTICAL_PARALLAX;
+  setStyle(wallpaper,'width',wallpaperLoop*3+'px');
   setStyle(wallpaper,'backgroundSize',wallpaperLoop+'px 100%');
-  setStyle(wallpaper,'transform','translate3d('+(vw/2-wallpaperPos*travelX-wallpaperLoop)+'px,0,0)');
+  setStyle(wallpaper,'transform','translate3d('+wallpaperX+'px,'+wallpaperY+'px,0)');
 
   // ---- Position each section along the ring via transform (compositor-only,
   // so panning stays smooth — no per-frame layout of full-viewport sections).
@@ -340,7 +344,7 @@
    setStyle(c.el,'left','0px');
    setStyle(c.el,'top','0px');
    setStyle(c.el,'transform','translate3d('+(rel*travelX)+'px,0,0)');
-   // Canvas backgrounds travel with the ring and crossfade between neighbours.
+   // Only canvas content fades; the wallpaper stays one continuous surface.
    // Detail content has a separate opacity track in applyContentState().
    setStyle(c.el,'opacity',String(ease(clamp(1-Math.abs(rel)))));
   });
@@ -652,10 +656,26 @@
  }
  // Native scroll changes docking geometry; coalesce it into the shared renderer.
  ALL.forEach(c=>c.el.addEventListener('scroll',schedulePlace,{passive:true}));
+ // Measure coverage only after content/viewport layout changes, never on scroll.
+ // The tallest canvas sets one shared map height; changing canvases cannot
+ // stretch or rearrange it. The extra margin keeps blur edges off-screen.
+ function updateWallpaperExtent(){
+  const vh=viewportHeight||viewport.clientHeight;
+  const inset=Math.max(vh*WALLPAPER_INSET,WALLPAPER_BLUR_MARGIN);
+  let maxScroll=0;
+  ALL.forEach(c=>{maxScroll=Math.max(maxScroll,c.el.scrollHeight-vh);});
+  const height=Math.max(vh*WALLPAPER_HEIGHT,vh+inset+maxScroll*WALLPAPER_VERTICAL_PARALLAX+WALLPAPER_BLUR_MARGIN);
+  setStyle(wallpaper,'top',-inset+'px');
+  setStyle(wallpaper,'height',height+'px');
+ }
+ const wallpaperContentObserver=new ResizeObserver(updateWallpaperExtent);
+ ALL.forEach(c=>wallpaperContentObserver.observe(c.content));
+
  new ResizeObserver(entries=>{
   const rect=entries[0].contentRect;
   viewportWidth=rect.width;
   viewportHeight=rect.height;
+  updateWallpaperExtent();
   schedulePlace();
  }).observe(viewport);
 
